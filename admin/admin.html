@@ -27,15 +27,16 @@
                 </h1>
             </div>
             <nav class="flex-1 px-4 space-y-2">
-                <a href="#" class="flex items-center gap-3 px-4 py-3 bg-gray-800 rounded-lg text-white">
+                <a href="#dashboard-section" onclick="scrollToSection('dashboard-section')" id="nav-dashboard"
+                    class="nav-link flex items-center gap-3 px-4 py-3 bg-gray-800 rounded-lg text-white">
                     <span class="material-icons">dashboard</span> Dashboard
                 </a>
-                <a href="#"
-                    class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+                <a href="#kb-section" onclick="scrollToSection('kb-section')" id="nav-kb"
+                    class="nav-link flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
                     <span class="material-icons">library_books</span> Knowledge Base
                 </a>
-                <a href="#"
-                    class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+                <a href="#settings-section" onclick="scrollToSection('settings-section')" id="nav-settings"
+                    class="nav-link flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
                     <span class="material-icons">settings</span> Settings
                 </a>
             </nav>
@@ -58,7 +59,10 @@
             </header>
 
             <!-- Scrollable Content -->
-            <main class="flex-1 overflow-y-auto p-8">
+            <main id="main-content" class="flex-1 overflow-y-auto p-8">
+
+                <!-- Dashboard Section -->
+                <div id="dashboard-section"></div>
 
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -144,13 +148,61 @@
                         class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer">
                         <span class="material-icons text-4xl text-gray-400 mb-2">cloud_upload</span>
                         <p class="text-sm text-gray-600">Drag and drop PDF/Text files here, or click to select</p>
-                        <p class="text-xs text-gray-400 mt-1">Supports PDF, TXT, DOCX</p>
+                        <p class="text-xs text-gray-400 mt-1">Supports PDF, TXT, CSV, DOCX</p>
                     </div>
-                    <input type="file" id="file-input" class="hidden" accept=".pdf,.txt,.docx">
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.txt,.csv,.docx">
                 </div>
 
             </main>
         </div>
+    </div>
+
+    <!-- Knowledge Base Modal (Hidden by default, shown by JS logic) -->
+    <!-- For simplicity, I'll add the list directly to the main view below upload -->
+
+    <!-- Knowledge Base List -->
+    <div id="kb-section" class="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-gray-800">Knowledge Base Files</h3>
+            <button onclick="loadFiles()" class="text-sm text-blue-500 hover:underline">Refresh</button>
+        </div>
+        <div class="overflow-hidden rounded-lg border border-gray-100">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50 text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3">Filename</th>
+                        <th class="px-6 py-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="file-list-body" class="divide-y divide-gray-100">
+                    <!-- Files injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div id="settings-section" class="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="font-bold text-gray-800 mb-4">Settings</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Admin Password</label>
+                <input type="password" id="new-admin-pass" placeholder="New Password"
+                    class="w-full border p-2 rounded-lg focus:border-red-500 focus:outline-none">
+                <p class="text-xs text-gray-400 mt-1">Password changes take effect after server restart. Update .env
+                    manually.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Ollama Model</label>
+                <input type="text" id="ollama-model" placeholder="e.g., gemma3:12b" value="gemma3:12b"
+                    class="w-full border p-2 rounded-lg focus:border-red-500 focus:outline-none" disabled>
+                <p class="text-xs text-gray-400 mt-1">Read-only. Change in .env file.</p>
+            </div>
+        </div>
+    </div>
+
+    </main>
+    </div>
     </div>
 
     <div id="auth-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
@@ -170,6 +222,24 @@
         // Simple Auth Logic (For Demo)
         const DEMO_PASS = "admin123";
         let isAuthenticated = false;
+
+        // Scroll to section and update active nav
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+                // Update active nav styling
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('bg-gray-800', 'text-white');
+                    link.classList.add('text-gray-400');
+                });
+                const activeNav = document.querySelector(`a[href="#${sectionId}"]`);
+                if (activeNav) {
+                    activeNav.classList.add('bg-gray-800', 'text-white');
+                    activeNav.classList.remove('text-gray-400');
+                }
+            }
+        }
 
         function checkAuth() {
             const pass = document.getElementById('admin-pass').value;
@@ -300,6 +370,65 @@
         // refreshData();
         // Auto refresh every 30s
         setInterval(refreshData, 30000);
+
+        async function loadFiles() {
+            try {
+                const response = await fetch('/api/admin/files');
+                const data = await response.json();
+                const tbody = document.getElementById('file-list-body');
+                tbody.innerHTML = '';
+
+                if (data.files.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-gray-400">No files found</td></tr>';
+                    return;
+                }
+
+                data.files.forEach(file => {
+                    const row = `
+                        <tr class="hover:bg-gray-50 group">
+                            <td class="px-6 py-4 font-medium text-gray-900 flex items-center gap-2">
+                                <span class="material-icons text-gray-400 text-sm">description</span>
+                                ${file}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button onclick="deleteFile('${file}')" class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span class="material-icons text-lg">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (e) {
+                console.error("Error loading files:", e);
+            }
+        }
+
+        async function deleteFile(filename) {
+            if (!confirm(`Delete ${filename}?`)) return;
+            try {
+                const response = await fetch('/api/admin/files', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadFiles(); // Reload list
+                } else {
+                    alert("Error: " + result.message);
+                }
+            } catch (e) {
+                alert("Error deleting file");
+            }
+        }
+
+        // Hook into refreshData to also load files
+        const originalRefresh = refreshData;
+        refreshData = async function () {
+            await originalRefresh();
+            await loadFiles();
+        }
     </script>
 </body>
 

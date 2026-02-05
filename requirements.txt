@@ -1,19 +1,27 @@
-# UCSI University Chatbot - Python Dependencies
-# Python Version: 3.13.7+
-# Last Updated: 2026-02-05
+# ===================================
+# UCSI AI Chatbot - Python 의존성 목록
+# ===================================
+# 설치 방법: pip install -r requirements.txt
 
-# Core Framework
-flask>=3.0.0
-pandas==2.2.2
-openpyxl>=3.1.0
-requests>=2.31.0
-python-dotenv>=1.0.0
+# AI & LangChain
+langchain                 # LLM 오케스트레이션 프레임워크
+langchain-community       # LangChain 커뮤니티 통합
+langchain-ollama          # Ollama LLM 연동 (최신 권장)
+ollama                    # Ollama Python 클라이언트
 
-# RAG (Vector Search)
-faiss-cpu==1.13.2
-sentence-transformers==5.2.2
-PyPDF2==3.0.1
-numpy==1.26.4
+# Vector Database (RAG)
+faiss-cpu                 # 벡터 유사도 검색
+sentence-transformers     # 텍스트 임베딩 (all-MiniLM-L6-v2)
+numpy                     # 수치 연산
+PyPDF2                    # PDF 텍스트 추출
 
-# MongoDB
-pymongo>=4.6.0
+# Authentication
+pyjwt                     # JWT 토큰 생성/검증
+werkzeug                  # 비밀번호 해싱
+
+# Core & Data
+flask                     # 웹 서버 프레임워크
+python-dotenv             # 환경변수 로딩 (.env)
+requests                  # HTTP 요청
+pymongo                   # MongoDB 드라이버
+dnspython                 # MongoDB Atlas SRV 연결 필수

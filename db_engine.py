@@ -23,85 +23,157 @@ class DatabaseEngine:
         self.client = None
         self.db = None
         self.connected = False
+        self.student_collection_name = "UCSI"  # Default
         
         if HAS_PYMONGO:
             self._connect()
     
     def _connect(self):
-        """Connect to MongoDB Atlas"""
+        """Establish connection to MongoDB Atlas with timeout"""
         try:
-            mongo_uri = os.getenv("MONGO_URI")
-            if not mongo_uri:
-                print("Warning: MONGO_URI not found in .env file")
+            # Load environment variables
+            if not os.getenv("MONGO_URI"):
+                load_dotenv()
+            if not os.getenv("MONGO_URI"):
+                load_dotenv()
+            
+            uri = os.getenv("MONGO_URI")
+            if not uri:
+                print("Error: MONGO_URI not found in .env")
                 return
+
+            # Add timeout to prevent hanging
+            self.client = MongoClient(uri, serverSelectionTimeoutMS=5000)
             
-            self.client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-            
-            # Test connection
+            # Verify connection
             self.client.admin.command('ping')
             
-            # Get database name from URI or use default
-            db_name = mongo_uri.split('/')[-1].split('?')[0] or 'ucsi_chatbot'
+            # Get Database
+            db_name = uri.split('/')[-1].split('?')[0] or "UCSI_DB"
             self.db = self.client[db_name]
-            
             self.connected = True
-            print(f"✅ MongoDB Connected: {db_name}")
+            print(f"✅ Successfully connected to MongoDB: {db_name}")
+
+            # Smart detection of Student Collection
+            try:
+                colls = self.db.list_collection_names()
+                candidates = ["UCSI", "students", "Students", "UCSI_STUDENTS"]
+                found = False
+                # First check if default candidates exist
+                for c in candidates:
+                    if c in colls:
+                        self.student_collection_name = c
+                        found = True
+                        break
+                
+                # If not found, look for any collection with 'student' in name
+                if not found:
+                    for c in colls:
+                        if "student" in c.lower() or "ucsi" in c.lower():
+                            self.student_collection_name = c
+                            found = True
+                            print(f"DEBUG: Auto-detected student collection: {c}")
+                            break
+                            
+                # Validate by checking if it has STUDENT_NUMBER
+                if found or colls:
+                    target = self.student_collection_name if found else colls[0]
+                    sample = self.db[target].find_one()
+                    if sample:
+                        print(f"DEBUG: Using collection '{target}' for student data.")
+                        self.student_collection_name = target
+            except Exception as e:
+                print(f"Warning: Could not auto-detect collections: {e}")
             
-        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-            print(f"❌ MongoDB Connection Failed: {e}")
-            self.connected = False
         except Exception as e:
-            print(f"❌ MongoDB Error: {e}")
+            print(f"❌ Database connection failed: {e}")
             self.connected = False
     
+    @property
+    def student_coll(self):
+        """Helper to get the student collection object"""
+        if self.db is not None:
+            return self.db[self.student_collection_name]
+        return None
+
     # ===========================================
     # STUDENTS COLLECTION
     # ===========================================
     
     def get_student_by_number(self, student_number: str) -> Optional[Dict]:
-        """Find student by student number"""
-        if not self.connected:
+        """Find student by student number (handles string and int)"""
+        if self.student_coll is None or not self.connected:
             return None
+        
         try:
-            return self.db.students.find_one({"STUDENT_NUMBER": student_number})
+            # Try string
+            student = self.student_coll.find_one({"STUDENT_NUMBER": str(student_number)})
+            if student: return student
+            
+            # Try int
+            if str(student_number).isdigit():
+                student = self.student_coll.find_one({"STUDENT_NUMBER": int(student_number)})
+                if student: return student
+                
+            # Try fuzzy field names if standard query failed
+            id_fields = ["student_number", "StudentNumber", "student_id", "id", "ID"]
+            for field in id_fields:
+                s = self.student_coll.find_one({field: str(student_number)})
+                if s: return s
+                if str(student_number).isdigit():
+                    s = self.student_coll.find_one({field: int(student_number)})
+                    if s: return s
+                    
+            return None
         except Exception as e:
             print(f"DB Error: {e}")
             return None
     
     def get_student_by_name(self, name: str) -> Optional[Dict]:
         """Find student by name (case-insensitive)"""
-        if not self.connected:
+        if self.student_coll is None or not self.connected:
             return None
         try:
-            return self.db.students.find_one({
+            # Try standard field
+            res = self.student_coll.find_one({
                 "STUDENT_NAME": {"$regex": f"^{name}$", "$options": "i"}
             })
+            if res: return res
+            
+            # Try common variations
+            name_fields = ["name", "Name", "StudentName", "full_name"]
+            for field in name_fields:
+                res = self.student_coll.find_one({
+                    field: {"$regex": f"^{name}$", "$options": "i"}
+                })
+                if res: return res
+            return None
         except Exception as e:
             print(f"DB Error: {e}")
             return None
     
     def get_all_students(self) -> List[Dict]:
         """Get all students"""
-        if not self.connected:
+        if self.student_coll is None or not self.connected:
             return []
         try:
-            return list(self.db.students.find({}, {"_id": 0}))
+            return list(self.student_coll.find({}, {"_id": 0}))
         except Exception as e:
             print(f"DB Error: {e}")
             return []
     
     def get_student_stats(self) -> Dict:
         """Get student statistics"""
-        if not self.connected:
+        if self.student_coll is None or not self.connected:
             return {}
         try:
-            total = self.db.students.count_documents({})
+            total = self.student_coll.count_documents({})
             
             # Gender distribution
             gender_pipeline = [
                 {"$group": {"_id": "$GENDER", "count": {"$sum": 1}}}
             ]
-            gender_stats = {doc["_id"]: doc["count"] for doc in self.db.students.aggregate(gender_pipeline)}
+            gender_stats = {str(doc.get("_id", "Unknown")): doc["count"] for doc in self.student_coll.aggregate(gender_pipeline)}
             
             # Nationality distribution
             nationality_pipeline = [
@@ -109,7 +181,7 @@ class DatabaseEngine:
                 {"$sort": {"count": -1}},
                 {"$limit": 10}
             ]
-            nationalities = {doc["_id"]: doc["count"] for doc in self.db.students.aggregate(nationality_pipeline)}
+            nationalities = {str(doc.get("_id", "Unknown")): doc["count"] for doc in self.student_coll.aggregate(nationality_pipeline)}
             
             return {
                 "total_students": total,
@@ -121,57 +193,38 @@ class DatabaseEngine:
             return {}
     
     # ===========================================
-    # FEEDBACKS COLLECTION
+    # FEEDBACKS & LOGS (Using separate collections)
     # ===========================================
     
     def save_feedback(self, feedback_data: Dict) -> bool:
-        """Save user feedback"""
-        if not self.connected:
-            return False
+        if self.db is None or not self.connected: return False
         try:
             self.db.feedbacks.insert_one(feedback_data)
             return True
-        except Exception as e:
-            print(f"DB Error: {e}")
-            return False
-    
+        except: return False
+
     def get_feedback_stats(self) -> Dict:
-        """Get feedback statistics"""
-        if not self.connected:
-            return {"total": 0, "positive": 0, "negative": 0}
+        if self.db is None or not self.connected: return {"total": 0}
         try:
-            total = self.db.feedbacks.count_documents({})
-            positive = self.db.feedbacks.count_documents({"rating": "positive"})
-            negative = self.db.feedbacks.count_documents({"rating": "negative"})
-            return {"total": total, "positive": positive, "negative": negative}
-        except Exception as e:
-            print(f"DB Error: {e}")
-            return {"total": 0, "positive": 0, "negative": 0}
-    
-    # ===========================================
-    # UNANSWERED QUESTIONS COLLECTION
-    # ===========================================
-    
+            return {
+                "total": self.db.feedbacks.count_documents({}),
+                "positive": self.db.feedbacks.count_documents({"rating": "positive"}),
+                "negative": self.db.feedbacks.count_documents({"rating": "negative"})
+            }
+        except: return {"total": 0}
+
     def log_unanswered(self, question_data: Dict) -> bool:
-        """Log unanswered question"""
-        if not self.connected:
-            return False
+        if self.db is None or not self.connected: return False
         try:
             self.db.unanswered.insert_one(question_data)
             return True
-        except Exception as e:
-            print(f"DB Error: {e}")
-            return False
+        except: return False
     
     def get_unanswered_questions(self, limit: int = 50) -> List[Dict]:
-        """Get recent unanswered questions"""
-        if not self.connected:
-            return []
+        if self.db is None or not self.connected: return []
         try:
             return list(self.db.unanswered.find({}, {"_id": 0}).sort("timestamp", -1).limit(limit))
-        except Exception as e:
-            print(f"DB Error: {e}")
-            return []
+        except: return []
 
 # Singleton instance
 db_engine = DatabaseEngine()

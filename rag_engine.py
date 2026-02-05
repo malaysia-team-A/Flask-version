@@ -89,6 +89,12 @@ class RAGEngine:
             elif ext == 'txt':
                 with open(file_path, 'r', encoding='utf-8') as f:
                     text = f.read()
+            elif ext == 'csv':
+                import csv
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    rows = list(reader)
+                    text = "\n".join([",".join(row) for row in rows])
             else:
                 return False
             

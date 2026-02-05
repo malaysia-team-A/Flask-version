@@ -1,217 +1,127 @@
-# 📋 UCSI University Chatbot - 프로젝트 인수인계서
+# 🎓 UCSI University AI 챗봇 - 인수인계서
 
-## 📌 프로젝트 개요
+## 📋 프로젝트 개요
 
-**프로젝트명**: UCSI University AI Chatbot  
-**목적**: 대학교 학생들이 개인 정보를 안전하게 조회할 수 있는 AI 챗봇  
-**버전**: 2.0.0  
-**최종 업데이트**: 2026-02-04
+**UCSI University AI Chatbot**은 학생들이 대학 정보 및 개인 정보(성적, 등록상태)를 AI와 대화를 통해 조회할 수 있는 시스템입니다.
 
-### 주요 특징:
-- 🤖 로컬 LLM (Ollama)을 사용한 무료 AI 응답
-- 🧠 LLM 기반 의도 분류 (Intent Classification)
-- 🔐 개인정보 보호 (본인 정보만 접근 가능)
-- 👤 Student Number + Name 기반 인증
-- 🎨 깔끔한 UI/UX (Tailwind CSS)
+- **LangChain** + **Ollama** 기반 로컬 LLM 사용
+- **MongoDB Atlas**에서 학생 데이터 조회
+- **FAISS** 벡터 DB로 대학 문서 검색 (RAG)
+- **이중 인증**으로 민감 정보(성적) 보호
 
 ---
 
-## 🛠️ 기술 스택 (Tech Stack)
+## 🛠️ 설치 및 실행 가이드
 
-### Backend
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Python** | 3.10+ | 메인 프로그래밍 언어 |
-| **Flask** | 3.0+ | Web Framework |
-| **Pandas** | 2.0+ | Excel 데이터 처리 |
-| **Openpyxl** | 3.1+ | .xlsx 파일 읽기 |
-| **FAISS** | Facebook AI | 고성능 벡터 검색 (Lightweight) |
+### 사전 요구사항
+- **Python 3.10 이상**
+- **Ollama** 설치 및 실행 ([https://ollama.com](https://ollama.com))
+- **MongoDB Atlas** 계정 및 연결 문자열
 
-### AI/LLM
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Ollama** | 최신 | 로컬 LLM 실행 엔진 |
-| **gemma3:12b** | 12B | AI 모델 (권장) |
-| **llama3.2:3b** | 3B | AI 모델 (경량 대안) |
+### Step 1: 가상환경 생성 및 활성화
 
-### Frontend
-| 기술 | 용도 |
-|------|------|
-| **HTML5** | 페이지 구조 |
-| **Tailwind CSS** | 스타일링 (CDN) |
-| **JavaScript (Vanilla)** | 클라이언트 로직 |
-| **Material Icons** | 아이콘 (CDN) |
+```powershell
+# 프로젝트 폴더로 이동
+cd c:\Users\leejb\Desktop\project_MALAYSIA
 
-### 인증/보안
-| 기술 | 용도 |
-|------|------|
-| **Session-based Auth** | 세션 기반 인증 |
-| **Student Number + Name** | 본인 확인 |
+# 가상환경 생성
+python -m venv .venv
 
----
+# 가상환경 활성화 (PowerShell)
+.\.venv\Scripts\Activate.ps1
 
-## 📁 파일 구조
-
-```
-project_MALAYSIA/
-├── main.py                 # 🚀 메인 서버 (Flask)
-├── ai_engine.py            # 🤖 AI 엔진 (Ollama 연결, 의도분류)
-├── data_engine.py          # 📊 데이터 엔진 (Excel 처리)
-├── feedback_engine.py      # 👍 피드백 엔진
-├── learning_engine.py      # 🧠 셀프러닝 엔진
-├── rag_engine.py           # 📚 RAG 엔진 (FAISS 기반)
-├── knowledge_base/         # 📁 RAG 문서 및 인덱스 저장
-├── admin/                  # 🛠️ 관리자 페이지
-│   └── admin.html
-├── UI_hompage/             # 🌐 프론트엔드
-│   └── code_hompage.html
-├── requirements.txt        # 📦 Python 의존성
-├── README.md               # 📖 이 문서
-└── Chatbot_TestData.xlsx   # 📋 학생 데이터
+# 만약 보안 오류 발생 시:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+.\.venv\Scripts\Activate.ps1
 ```
 
----
+### Step 2: 의존성 설치
 
-## ⚙️ 환경 설정 가이드
-
-### 1단계: Python 설치
-```bash
-# Python 3.10 이상 필요
-python --version
-```
-
-### 2단계: Python 의존성 설치
-```bash
-cd project_MALAYSIA
+```powershell
+# 가상환경 활성화된 상태에서 실행
 pip install -r requirements.txt
 ```
 
-### 3단계: Ollama 설치 (로컬 LLM)
-1. **다운로드**: https://ollama.com/download/windows
-2. **설치 파일 실행**: OllamaSetup.exe
-3. **모델 다운로드**:
-```bash
+### Step 3: Ollama 모델 다운로드
+
+```powershell
+# 별도 터미널에서 실행
 ollama pull gemma3:12b
 ```
 
----
+### Step 4: 환경변수 설정
 
-## 🚀 실행 방법
+`.env` 파일이 프로젝트 루트에 있어야 합니다:
 
-### 터미널 실행
-```bash
-cd project_MALAYSIA
+```
+MONGO_URI=mongodb+srv://[사용자]:[비밀번호]@cluster.mongodb.net/UCSI_DB
+OLLAMA_MODEL=gemma3:12b
+OLLAMA_URL=http://localhost:11434
+ADMIN_PASSWORD=admin123
+```
+
+### Step 5: 서버 실행
+
+```powershell
+# 가상환경 활성화 상태에서
 python main.py
 ```
 
-**성공 시 출력:**
-```
-Running on http://0.0.0.0:8000
-```
-
-### 브라우저 접속
-```
-http://localhost:8000
-```
+**접속 주소:**
+- 챗봇 UI: [http://localhost:5000/site/code_hompage.html](http://localhost:5000/site/code_hompage.html)
+- 관리자 패널: [http://localhost:5000/admin](http://localhost:5000/admin)
 
 ---
 
-## 🤖 AI 의도 분류 시스템
+## 🧪 테스트 시나리오
 
-### 단순화된 2가지 의도
-
-| 의도 | 설명 | 인증 필요 | 예시 |
-|------|------|----------|------|
-| **GENERAL** | 일반 정보 (통계 포함) | ❌ 불필요 | "Hello", "How many students?", "Gender ratio?" |
-| **PERSONAL_DATA** | 학생 개인 정보 | ✅ 필요 | "Who is Vicky?", "My grades", "Tell me my info" |
-
----
-
-## 🔐 인증 및 보안 로직
-
-### 로그인 방법
-1. 챗봇 헤더의 **Login 버튼** 클릭
-2. Student Number + Full Name 입력
-3. ✅ 인증 성공 시 버튼이 사용자 이름으로 변경
+| 시나리오 | 입력 | 예상 결과 |
+|----------|------|-----------|
+| 일반 정보 조회 | "What faculties are there?" | 지식베이스 기반 학과 목록 응답 |
+| 로그인 | 학번: `1001`, 이름: `Alice` | 로그인 성공, JWT 토큰 발급 |
+| 프로필 조회 | "What is my student ID?" | 본인 학번 표시 |
+| 성적 조회 (이중인증) | "Show me my grades" | 비밀번호 재입력 요청 |
+| 통계 조회 | "How many students are there?" | MongoDB 집계 결과 표시 |
 
 ---
 
-## 📊 데이터 파일 (Excel)
+## 📁 핵심 파일 설명
 
-### 파일: `Chatbot_TestData.xlsx`
-- **중요**: 암호화/보호 해제 필요
-- Excel에서 열어서 "다른 이름으로 저장" → 암호 없이 저장
-
----
-
-## ❗ 트러블슈팅
-
-### 포트 사용 중
-```
-Address already in use
-```
-**해결**: `main.py` 맨 아래 포트 번호 변경
-```python
-app.run(host="0.0.0.0", port=8001)
-```
+| 파일 | 역할 |
+|------|------|
+| `main.py` | Flask 서버, API 엔드포인트 정의 |
+| `ai_engine.py` | LangChain 의도분류 및 응답 생성 |
+| `db_engine.py` | MongoDB Atlas 연결 및 쿼리 |
+| `rag_engine.py` | FAISS 벡터 검색 (RAG) |
+| `auth_utils.py` | JWT 토큰 및 비밀번호 해싱 |
+| `requirements.txt` | Python 의존성 목록 |
+| `.env` | 환경변수 (MongoDB URI, Ollama 설정) |
 
 ---
 
-## 📝 테스트 시나리오
+## ⚠️ 주의사항
 
-### 1. 일반 대화 (인증 불필요)
-```
-입력: "Hello, who are you?"
-결과: AI 자기소개 ✅
-```
-
-### 2. 통계 조회 (인증 불필요)
-```
-입력: "How many students are enrolled?"
-결과: 📊 통계 정보 표시 ✅
-```
-
-### 3. 미로그인 상태에서 개인정보 요청
-```
-입력: "Who is Vicky Yiran?"
-결과: 🔒 "This is student personal information. Please login..." ✅
-```
-
-### 4. 로그인 후 본인 정보 조회
-```
-입력: "Show me my information"
-결과: 📋 본인 정보 깔끔하게 표시 ✅
-```
-
-### 5. 타인 정보 접근 시도
-```
-(A로 로그인한 상태)
-입력: "Who is B?"
-결과: 🔒 "Privacy Protection: You can only access your own information." ✅
-```
+1. **Ollama 서버 필수**: `main.py` 실행 전에 `ollama serve`가 실행 중이어야 합니다.
+2. **가상환경 사용**: 반드시 `.venv` 가상환경 내에서 실행하세요.
+3. **MongoDB 연결**: `.env`의 `MONGO_URI`가 올바른지 확인하세요.
+4. **포트**: 기본 포트는 `5000`입니다. 변경 시 `main.py` 수정 필요.
 
 ---
 
-## 📞 Quick Reference
+## 🔧 문제 해결
 
-### 필수 명령어
-```bash
-# 의존성 설치
+### ModuleNotFoundError 발생 시
+```powershell
+# 가상환경이 활성화되어 있는지 확인 (프롬프트에 (.venv) 표시)
+# 안 되어 있다면:
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# Ollama 모델 다운로드
-ollama pull gemma3:12b
-
-# 서버 시작
-python main.py
 ```
 
-### 접속 URL
-- 메인 페이지: http://localhost:8000
-- API Health: http://localhost:8000/api/health
-- API Stats: http://localhost:8000/api/stats
+### MongoDB 연결 실패 시
+- `.env` 파일의 `MONGO_URI` 확인
+- MongoDB Atlas에서 IP 화이트리스트에 현재 IP 추가
 
----
-
-**마지막 업데이트**: 2026-02-04  
-**버전**: 2.0.0
+### Ollama 연결 실패 시
+- 별도 터미널에서 `ollama serve` 실행 확인
+- `ollama list`로 모델 설치 여부 확인

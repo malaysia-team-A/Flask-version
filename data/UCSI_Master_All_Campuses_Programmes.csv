@@ -1,0 +1,28 @@
+Faculty,Programme,Level,Campus,Academic_Requirement,IELTS,MUET,Annual_Fee_International_MYR,Annual_Fee_Local_MYR,Subject_Requirements,Official_Programme_URL
+Business & Management,Business Administration,Undergraduate,Kuala Lumpur,STPM/A-Level/Diploma,5.5,Band 3,27000,22000,"Mathematics: Recommended, Science: Not Required",
+Business & Management,Accounting & Finance,Undergraduate,Kuala Lumpur,STPM/A-Level/Diploma,5.5,Band 3,29000,24000,"Mathematics: Recommended, Science: Not Required",
+Business & Management,MBA,Postgraduate,Kuala Lumpur,Bachelor Degree,6.0,Band 4,35000,30000,"Mathematics: Recommended, Science: Not Required",
+Engineering,Mechanical Engineering,Undergraduate,Kuala Lumpur,Foundation/A-Level/Diploma,5.5,Band 3,28000,23000,"Mathematics: Required, Science: Required",
+Engineering,Electrical & Electronic Engineering,Undergraduate,Kuala Lumpur,Foundation/A-Level/Diploma,5.5,Band 3,28000,23000,"Mathematics: Required, Science: Required",
+Engineering,Civil Engineering,Undergraduate,Kuala Lumpur,Foundation/A-Level/Diploma,5.5,Band 3,27000,22000,"Mathematics: Required, Science: Required",
+Computer Science,Computer Science,Undergraduate,Kuala Lumpur,Foundation/A-Level/Diploma,5.5,Band 3,26000,21000,"Mathematics: Required, Science: Required",
+Computer Science,Artificial Intelligence,Undergraduate,Kuala Lumpur,Foundation/A-Level/Diploma,5.5,Band 3,27000,22000,"Mathematics: Required, Science: Required",
+Computer Science,Data Science,Undergraduate,Kuala Lumpur,Foundation/A-Level/Diploma,5.5,Band 3,27000,22000,"Mathematics: Required, Science: Required",
+Applied Sciences,Biotechnology,Undergraduate,Kuala Lumpur,Foundation in Science,5.5,Band 3,30000,25000,"Mathematics: Required, Science (Biology/Chemistry): Required",
+Applied Sciences,Forensic Science,Undergraduate,Kuala Lumpur,Foundation in Science,5.5,Band 3,32000,27000,"Mathematics: Required, Science (Biology/Chemistry): Required",
+Health Sciences,Pharmacy,Undergraduate,Kuala Lumpur,Foundation in Science,6.0,Band 4,43500,38000,"Mathematics: Required, Science (Biology/Chemistry): Required",
+Health Sciences,Nursing,Undergraduate,Kuala Lumpur,Foundation in Science,5.5,Band 3,26000,22000,"Mathematics: Required, Science (Biology/Chemistry): Required",
+Health Sciences,Optometry,Undergraduate,Kuala Lumpur,Foundation in Science,6.0,Band 4,34000,29000,"Mathematics: Required, Science (Biology/Chemistry): Required",
+Social Sciences,Psychology,Undergraduate,Kuala Lumpur,STPM/A-Level/Diploma,5.5,Band 3,28000,23000,"Mathematics: Recommended, Science: Not Required",
+Hospitality,Hospitality Management,Undergraduate,Kuala Lumpur,STPM/A-Level/Diploma,5.5,Band 3,25000,21000,"Mathematics: Recommended, Science: Not Required",
+Music,Music Performance,Undergraduate,Kuala Lumpur,Audition + STPM/A-Level,5.5,Band 3,30000,26000,"Mathematics: Recommended, Science: Not Required",
+Pre-University,Foundation in Science,Foundation,Kuala Lumpur,SPM/O-Level,5.0,Band 2,22000,18000,"Mathematics: Case-by-case, Science: Case-by-case",
+Pre-University,Foundation in Business,Foundation,Kuala Lumpur,SPM/O-Level,5.0,Band 2,20000,16000,"Mathematics: Case-by-case, Science: Case-by-case",
+Business & Management,Business Administration,Undergraduate,Kuching,STPM/A-Level/Diploma,5.5,Band 3,24000,20000,"Mathematics: Recommended, Science: Not Required",
+Computer Science,Computer Science,Undergraduate,Kuching,Foundation/A-Level/Diploma,5.5,Band 3,23000,19000,"Mathematics: Required, Science: Required",
+Engineering,Civil Engineering,Undergraduate,Kuching,Foundation/A-Level/Diploma,5.5,Band 3,25000,21000,"Mathematics: Required, Science: Required",
+Health Sciences,Nursing,Undergraduate,Springhill (Negeri Sembilan),Foundation in Science / Diploma,5.5,Band 3,24000,20000,"Mathematics: Required, Science (Biology/Chemistry): Required",https://www.ucsiuniversity.edu.my/programmes/bachelor-nursing
+Health Sciences,Physiotherapy,Undergraduate,Springhill (Negeri Sembilan),Foundation in Science,5.5,Band 3,26000,22000,"Mathematics: Required, Science (Biology/Chemistry): Required",https://www.ucsiuniversity.edu.my/programmes/bachelor-physiotherapy
+Health Sciences,Medical Imaging,Undergraduate,Springhill (Negeri Sembilan),Foundation in Science,5.5,Band 3,28000,24000,"Mathematics: Required, Science (Biology/Chemistry): Required",https://www.ucsiuniversity.edu.my/programmes/bachelor-medical-imaging
+Applied Sciences,Environmental Science,Undergraduate,Springhill (Negeri Sembilan),Foundation in Science,5.5,Band 3,25000,21000,"Mathematics: Required, Science (Biology/Chemistry): Required",https://www.ucsiuniversity.edu.my/programmes/bachelor-environmental-science
+Pre-University,Foundation in Science,Foundation,Springhill (Negeri Sembilan),SPM/O-Level,5.0,Band 2,20000,16000,"Mathematics: Case-by-case, Science: Case-by-case",https://www.ucsiuniversity.edu.my/programmes/foundation-science
