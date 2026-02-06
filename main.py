@@ -8,9 +8,9 @@ Features:
 - Log Anonymization
 """
 from flask import Flask, request, jsonify, send_from_directory
-from data_engine import DataEngine
-from ai_engine import AIEngine
-from feedback_engine import FeedbackEngine
+from app.engines.data_engine import DataEngine
+from app.engines.ai_engine import AIEngine
+from app.engines.feedback_engine import FeedbackEngine
 import os
 import json
 import logging
@@ -20,9 +20,9 @@ from functools import wraps
 from collections import deque
 
 # Custom Modules
-import auth_utils
-import logging_utils
-from learning_engine import learning_engine
+from app.utils import auth_utils
+from app.utils import logging_utils
+from app.engines.learning_engine import learning_engine
 
 # Setup Logging
 logger = logging_utils.get_logger()
@@ -33,11 +33,11 @@ logging.getLogger("faiss").setLevel(logging.WARNING)
 logging.getLogger("werkzeug").setLevel(logging.WARNING) # Optional: cleaner flask logs
 
 # Initialize Flask App
-app = Flask(__name__, static_folder="UI_hompage", static_url_path="/site")
+app = Flask(__name__, static_folder="static/site", static_url_path="/site")
 app.secret_key = auth_utils.SECRET_KEY
 
 # Initialize Engines
-DATA_FILE = "Chatbot_TestData.xlsx" # Config artifact, logic moved to MongoDB
+DATA_FILE = "data/Chatbot_TestData.xlsx" # Config artifact, logic moved to MongoDB
 data_engine = DataEngine(DATA_FILE)
 
 MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
@@ -181,7 +181,7 @@ def home():
 
 @app.route('/site/<path:filename>')
 def serve_static(filename):
-    return send_from_directory('UI_hompage', filename)
+    return send_from_directory('static/site', filename)
 
 # ===========================================
 # AUTH ENDPOINTS
@@ -323,7 +323,7 @@ def chat():
                     
                     # If still no context, try RAG
                     if not context_used or "error" in str(context_used).lower():
-                        from rag_engine import rag_engine
+                        from app.engines.rag_engine import rag_engine
                         rag_docs = rag_engine.search(user_message)
                         if rag_docs:
                              context_used = "\n".join([d.page_content for d in rag_docs])
@@ -416,8 +416,8 @@ def logout():
 @app.route('/admin')
 def admin_page():
     """Serve Admin Dashboard"""
-    if os.path.exists("admin/admin.html"):
-        return send_from_directory('admin', 'admin.html')
+    if os.path.exists("static/admin/admin.html"):
+        return send_from_directory('static/admin', 'admin.html')
     return "Admin panel not found", 404
 
 @app.route('/api/admin/stats', methods=['GET'])
@@ -456,14 +456,14 @@ def upload_document():
             
         if file:
             # Ensure directory exists
-            if not os.path.exists("knowledge_base"):
-                os.makedirs("knowledge_base")
+            if not os.path.exists("data/knowledge_base"):
+                os.makedirs("data/knowledge_base")
                 
-            file_path = f"knowledge_base/{file.filename}"
+            file_path = f"data/knowledge_base/{file.filename}"
             file.save(file_path)
             
             # Ingest into RAG
-            from rag_engine import rag_engine
+            from app.engines.rag_engine import rag_engine
             success = rag_engine.ingest_file(file_path)
             
             if success:
@@ -480,8 +480,9 @@ def list_files():
     """List files in knowledge base"""
     try:
         files = []
-        if os.path.exists("knowledge_base"):
-            for f in os.listdir("knowledge_base"):
+        kb_path = "data/knowledge_base"
+        if os.path.exists(kb_path):
+            for f in os.listdir(kb_path):
                 if f.endswith(('.pdf', '.txt', '.csv', '.docx')):
                     files.append(f)
         return jsonify({"files": files})
@@ -497,7 +498,7 @@ def delete_file():
         if not filename:
             return jsonify({"success": False, "message": "Filename required"}), 400
         
-        file_path = os.path.join("knowledge_base", filename)
+        file_path = os.path.join("data/knowledge_base", filename)
         if os.path.exists(file_path):
             os.remove(file_path)
             # Note: Ideally we should re-index RAG here, but for now we just delete source
