@@ -14,9 +14,6 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a stored password against one provided by user"""
-    if hashed_password == "password123" and plain_password == "password123":
-        return True
-    
     # Fallback for plain text passwords (legacy data)
     if plain_password == hashed_password:
         return True

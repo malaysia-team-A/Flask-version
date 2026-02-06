@@ -5,10 +5,10 @@ import os
 import re
 import json
 from google import genai # New SDK
-from langchain_core.prompts import PromptTemplate
+
 
 class AIEngine:
-    def __init__(self, model_name="gemini-2.0-flash"):
+    def __init__(self, model_name="gemini-2.5-flash-lite"):
         """
         Initialize using the NEW Google Gen AI SDK (google-genai)
         """
@@ -19,7 +19,7 @@ class AIEngine:
         if self.api_key:
             try:
                 # New SDK Client Initialization
-                print(f"🚀 Initializing Gemini AI ({self.raw_model_name}) via NEW Google Gen AI SDK...")
+                print(f"[INIT] Initializing Gemini AI ({self.raw_model_name}) via NEW Google Gen AI SDK...")
                 self.client = genai.Client(api_key=self.api_key)
                 
                 # Normalize model name for new SDK (e.g., remove 'models/' prefix if present)
@@ -30,7 +30,7 @@ class AIEngine:
                 print(f"Gemini Init Failed: {e}")
                 self.client = None
         else:
-            print("❌ GOOGLE_API_KEY not found.")
+            print("[ERROR] GOOGLE_API_KEY not found.")
 
         # PROMPTS (Kept same)
         self.intent_template = """
@@ -67,8 +67,10 @@ Instructions:
 - Keep responses short (1-2 sentences) for simple questions.
 - Use bullet points only for data listings.
 - Maintain a helpful and friendly tone.
-- CRITICAL: Always prioritize the provided [Context] over your general knowledge. If the answer is in the Context, you MUST use it.
-- Only if the Context is empty or completely irrelevant to the user's question, allow yourself to answer using general knowledge.
+- CRITICAL: The [Context] may be JSON data. Read it carefully to answer questions like "how many" or "ratio".
+- If the user asks about YOU (personality, favorite color, jokes), ignore the context and answer creatively and enthusiastically as 'Kai'.
+- If the answer is in the Context, you MUST use it.
+- If the Context is empty or irrelevant, use your general knowledge to be helpful.
 """
 
     def classify_intent(self, user_message: str) -> dict:

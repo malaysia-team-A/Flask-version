@@ -511,7 +511,7 @@ if __name__ == "__main__":
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
         
-        print(f"Starting Flask server with LangChain Model: {MODEL_NAME}")
+        print(f"Starting Flask server with Google GenAI Native Model: {MODEL_NAME}")
         # Disable reloader to prevent double-execution/subprocess issues in certain envs
         app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
     except Exception as e:
