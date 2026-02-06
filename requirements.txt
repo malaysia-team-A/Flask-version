@@ -9,4 +9,5 @@ pypdf2
 requests
 pandas
 openpyxl
-google-genai>=1.0.0
+google-genai
+pyjwt

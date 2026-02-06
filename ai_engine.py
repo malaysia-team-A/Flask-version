@@ -33,101 +33,121 @@ class AIEngine:
             print("[ERROR] GOOGLE_API_KEY not found.")
 
         # PROMPTS (Kept same)
-        self.intent_template = """
-        You are an intent classifier for a University Chatbot.
-        Classify the following user message into one of these intents:
-        
-        1. GENERAL: General questions about the university, statistics, campus, facilities, programs.
-        2. PERSONAL_DATA: Questions requiring student personal data (grades, enrollment status, "who is X?", "my info").
-        
-        Also extract any specific entity/name mentioned.
-        
-        Output strictly in JSON format:
-        {{
-            "intent": "GENERAL" or "PERSONAL_DATA",
-            "search_term": "extracted name or entity or null"
-        }}
-        
-        User Message: {user_message}
-        """
         
         self.qa_template = """You are Kai, a smart and energetic student assistant for UCSI University.
-Answer using the structured context and prior conversation. Resolve pronouns or follow-up references using the conversation log before relying on general knowledge.
-
-Conversation History:
-{conversation}
+Answer based on the Context and Conversation History.
 
 Context:
 {context}
 
+Conversation History:
+{conversation}
+
 Question: {question}
 
 Instructions:
-- Be concise. Answer directly without filler phrases like "As an AI...".
-- Keep responses short (1-2 sentences) for simple questions.
-- Use bullet points only for data listings.
-- Maintain a helpful and friendly tone.
-- CRITICAL: The [Context] may be JSON data. Read it carefully to answer questions like "how many" or "ratio".
-- If the user asks about YOU (personality, favorite color, jokes), ignore the context and answer creatively and enthusiastically as 'Kai'.
-- If the answer is in the Context, you MUST use it.
-- If the Context is empty or irrelevant, use your general knowledge to be helpful.
+1. **Persona**: Friendly, energetic, helpful.
+2. **Format**: **STRICT JSON OUTPUT ONLY**. No markdown block ` ```json `. Just the raw JSON.
+3. **Structure**:
+   {{
+      "text": "The actual answer text here...",
+      "suggestions": ["Follow-up Q1", "Follow-up Q2", "Follow-up Q3"]
+   }}
+4. **Suggestions**: Provide 3 short, relevant follow-up questions that the user might want to ask next.
+5. **Accuracy**: Use Context if available. If asking about YOU (personality), be creative. if unknown, say you don't know politely.
+
+Response (JSON):
 """
 
-    def classify_intent(self, user_message: str) -> dict:
-        """Classify intent using New Google SDK"""
+    def process_message(self, user_message: str, data_context: str = "", conversation_history=None) -> dict:
+        """
+        Unified processing to save API calls.
+        Returns JSON: { "response": str, "suggestions": list, "needs_context": bool, "search_term": str }
+        """
         if not self.client:
-            return {"intent": "GENERAL", "search_term": None}
-            
-        try:
-            prompt = self.intent_template.format(user_message=user_message)
-            
-            # New SDK Call Structure
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt
-            )
-            content = response.text.strip()
-            
-            # Extract JSON
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group())
-            else:
-                return {"intent": "GENERAL", "search_term": None}
-        except Exception as e:
-            print(f"Intent Error: {e}")
-            return {"intent": "GENERAL", "search_term": None}
-
-    def get_response(self, user_message: str, data_context: str = "", conversation_history=None) -> str:
-        """Get answer using New Google SDK"""
-        if not self.client:
-            return "System Error: AI Model not initialized."
+            return {"response": "System Error: AI Model not initialized.", "suggestions": []}
 
         try:
+            # 1. Prepare Conversation Text
             conversation_text = ""
             if conversation_history:
-                recent_history = conversation_history[-8:]
+                recent = conversation_history[-6:] # Keep it short to save tokens
                 segments = []
-                for item in recent_history:
-                    role = item.get("role")
-                    speaker = "User" if role == "user" else "Model" 
-                    segments.append(f"{speaker}: {item.get('content', '')}")
+                for item in recent:
+                    role = "User" if item.get("role") == "user" else "Model"
+                    content = item.get('content', '')
+                    # Clean previous JSON outputs from history to avoid confusion
+                    try:
+                        c_json = json.loads(content)
+                        if isinstance(c_json, dict):
+                            content = c_json.get('text', '')
+                    except:
+                        pass
+                    segments.append(f"{role}: {content}")
                 conversation_text = "\n".join(segments)
 
-            prompt = self.qa_template.format(
-                context=data_context or "No structured context provided.",
-                conversation=conversation_text or "No prior conversation.",
-                question=user_message
-            )
+            # 2. Construct Prompt (One-Shot Decision)
+            # If data_context is provided, we force an answer.
+            # If NO data_context, we check if we NEED it.
             
-            # New SDK Call Structure
+            if data_context:
+                # PHASE 2: We have data, generate answer.
+                prompt = self.qa_template.format(
+                    context=data_context,
+                    conversation=conversation_text,
+                    question=user_message
+                )
+            else:
+                # PHASE 1: Decide Intent OR Answer directly
+                prompt = f"""You are Kai, a university assistant.
+Current Conversation:
+{conversation_text}
+
+User Question: {user_message}
+
+Instructions:
+1. If the user asks about SPECIFIC student data (count, gender, grades, verification), request DB access.
+   Output: {{ "needs_context": true, "search_term": "extracted keywords" }}
+   
+2. If it's a GENERAL question (greetings, about university info, jokes, personality), ANSWER IT DIRECTLY.
+   Output: {{ 
+      "text": "Your answer here...", 
+      "suggestions": ["Follow-up 1", "Follow-up 2", "Follow-up 3"] 
+   }}
+
+3. STRICT JSON OUTPUT ONLY.
+"""
+
+            # 3. Call API
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt
             )
-            return response.text.strip()
+            raw_text = response.text.strip()
+            
+            # 4. Parse JSON
+            json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+                # Normalize output keys
+                return {
+                    "response": data.get("text", ""),
+                    "suggestions": data.get("suggestions", []),
+                    "needs_context": data.get("needs_context", False),
+                    "search_term": data.get("search_term", None)
+                }
+            else:
+                # Fallback for plain text response
+                return {
+                    "response": raw_text, 
+                    "suggestions": ["Menu", "Contact"],
+                    "needs_context": False
+                }
 
         except Exception as e:
-            print(f"Response Error: {e}")
-            return "I apologize, but I encountered an error generating a response."
+            print(f"AI Error: {e}")
+            return {"response": "I'm having trouble connecting right now.", "suggestions": []}
+
+    # ... (Unified process_message method kept above) ...
+    # Deprecated fallback methods removed for cleanliness.
 

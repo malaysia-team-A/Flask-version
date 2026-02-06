@@ -27,6 +27,11 @@ from learning_engine import learning_engine
 # Setup Logging
 logger = logging_utils.get_logger()
 
+# Suppress noisy external libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("faiss").setLevel(logging.WARNING)
+logging.getLogger("werkzeug").setLevel(logging.WARNING) # Optional: cleaner flask logs
+
 # Initialize Flask App
 app = Flask(__name__, static_folder="UI_hompage", static_url_path="/site")
 app.secret_key = auth_utils.SECRET_KEY
@@ -135,6 +140,15 @@ def append_conversation_message(session_key, role, content):
     )
     history.append({"role": role, "content": content})
 
+def is_grade_query(message):
+    return any(k in message.lower() for k in ['grade', 'result', 'exam', 'score', 'gpa'])
+
+def check_personal_intent(message, search_term):
+    # Heuristic: Check for explicit "my" + data keywords OR if AI identified a personal search term
+    if "my " in message.lower():
+        return True
+    return False
+
 
 def token_required(f):
     @wraps(f)
@@ -217,7 +231,8 @@ def verify_high_security(current_user):
         if not student:
             return jsonify({"success": False, "message": "Student record not found"}), 404
             
-        stored_password_hash = student.get("PASSWORD", "")
+        # Robust Password Retrieval (Case-insensitive)
+        stored_password_hash = student.get("PASSWORD") or student.get("Password") or student.get("password") or ""
 
         # Verify
         if auth_utils.verify_password(password, stored_password_hash):
@@ -259,104 +274,95 @@ def chat():
 
         append_conversation_message(session_key, "user", user_message)
         
-        # 1. Intent Classification
-        intent_result = ai_engine.classify_intent(user_message)
-        intent = intent_result.get("intent", "GENERAL")
+        # --- OPTIMIZED SINGLE-CALL FLOW ---
         
-        # Log Audit
-        user_id = current_user.get("student_number", "Guest") if current_user else "Guest"
-        logging_utils.log_audit("CHAT_INTENT", user_id, f"Intent: {intent}, Msg: {user_message}")
+        # 1. Initial Attempt (No Data Context)
+        # This checks if the AI can answer directly OR if it needs data.
+        initial_result = ai_engine.process_message(user_message, conversation_history=list(conversation_history))
         
-        context = ""
-        response_type = "message"
-        context_used = False
-        
-        # 2. Handle Personal Data Intent
-        if intent == "PERSONAL_DATA":
-            if not current_user:
-                login_message = "\U0001f512 Please login to access personal information."
-                append_conversation_message(session_key, "assistant", login_message)
-                return jsonify({
-                    "response": login_message,
-                    "type": "login_hint",
-                    "conversation_id": conversation_id
-                })
+        response_payload = {}
+        response_text = ""
+        context_used = ""
 
-            student_number = current_user.get("student_number")
-            
-            # Check if asking for Grades/Results (Simple keyword check)
-            is_grade_query = any(k in user_message.lower() for k in ['grade', 'result', 'exam', 'score', 'gpa'])
-            
-            if is_grade_query:
-                # DUAL AUTH CHECK
-                expiry = high_security_sessions.get(student_number)
-                if not expiry or datetime.now() > expiry:
-                    security_prompt = "\U0001f512 Security Check: Please enter your password to view examination results."
-                    append_conversation_message(session_key, "assistant", security_prompt)
-                    return jsonify({
-                        "response": security_prompt,
-                        "type": "password_prompt",  # Frontend handles this by showing password modal
-                        "conversation_id": conversation_id
-                    })
-            
-            # Retrieve Data
-            student_data = data_engine.get_student_info(student_number)
-            
-            if not student_data:
-                response_text = "I couldn't find your student record. Please contact the registrar to confirm your enrollment."
-                log_learning_issue(user_message, "unanswered", response_text)
-                append_conversation_message(session_key, "assistant", response_text)
-                return jsonify({
-                    "response": response_text,
-                    "type": response_type,
-                    "user": current_user.get("name") if current_user else "Guest",
-                    "conversation_id": conversation_id
-                })
-            
-            # Privacy: Only show what is needed
-            context = build_student_context(student_data)
-            context_used = True
-        
-        # 3. Handle General Intent
+        if initial_result.get("needs_context"):
+            # 2. Context Required -> Fetch Data & Re-Prompt
+            try:
+                print(f"DEBUG: AI requested context for '{user_message}'")
+                search_term = initial_result.get("search_term")
+                
+                # A. Check for Personal Data / Grades first (Security)
+                is_personal = check_personal_intent(user_message, search_term)
+                if is_personal:
+                     if not current_user:
+                        return jsonify({
+                            "response": "🔒 Please login to access personal information.",
+                            "type": "login_hint",
+                            "conversation_id": conversation_id
+                        })
+                     # Dual Auth Check for Grades
+                     if is_grade_query(user_message):
+                        expiry = high_security_sessions.get(current_user.get("student_number"))
+                        if not expiry or datetime.now() > expiry:
+                            return jsonify({
+                                "response": "🔒 Security Check: Please enter your password to view examination results.",
+                                "type": "password_prompt",
+                                "conversation_id": conversation_id
+                            })
+                            
+                     student_data = data_engine.get_student_info(current_user.get("student_number"))
+                     if student_data:
+                         context_used = build_student_context(student_data)
+                     else:
+                         context_used = "Student record not found."
+
+                # B. If not personal, check DB Stats or RAG
+                if not context_used:
+                    # Simple heuristic: if query mentions "how many" or "stats", check stats first
+                    if "count" in user_message.lower() or "how many" in user_message.lower():
+                        context_used = data_engine.get_summary_stats()
+                    
+                    # If still no context, try RAG
+                    if not context_used or "error" in str(context_used).lower():
+                        from rag_engine import rag_engine
+                        rag_docs = rag_engine.search(user_message)
+                        if rag_docs:
+                             context_used = "\n".join([d.page_content for d in rag_docs])
+
+                # 3. Final call with context
+                final_result = ai_engine.process_message(
+                    user_message, 
+                    data_context=context_used or "No specific data found.", 
+                    conversation_history=list(conversation_history)
+                )
+                
+                response_text = final_result.get("response", "I couldn't find that info.")
+                response_payload = {
+                    "text": response_text,
+                    "suggestions": final_result.get("suggestions", [])
+                }
+            except Exception as e:
+                logger.error(f"Context Fetch Error: {e}")
+                response_text = "I encountered an error looking up that information."
+                response_payload = {"text": response_text, "suggestions": []}
+
         else:
-            # Programme lookup before generic stats
-            programme_matches = data_engine.search_programme_info(user_message)
-            message_lower = user_message.lower()
-            if programme_matches:
-                context = f"PROGRAMME DATA:\n{json.dumps(programme_matches, indent=2, default=str)}"
-                context_used = True
-            elif any(kw in message_lower for kw in ["how many", "total student", "gender", "ratio", "nationality"]):
-                 stats = data_engine.get_summary_stats()
-                 if stats and "error" not in stats:
-                     context = f"UNIVERSITY STATISTICS:\n{stats}"
-                     context_used = True
-                 else:
-                     logger.warning(f"Summary stats unavailable: {stats}")
-            else:
-                 # Search RAG knowledge base for relevant context
-                 from rag_engine import rag_engine
-                 rag_context = rag_engine.search(user_message)
-                 if rag_context:
-                     context = f"KNOWLEDGE BASE:\n{rag_context}"
-                     context_used = True
+            # AI Answered directly (Saved 1 Call!)
+            response_text = initial_result.get("response", "")
+            response_payload = {
+                "text": response_text,
+                "suggestions": initial_result.get("suggestions", [])
+            }
 
-        # 4. Generate Response
-        response_text = ai_engine.get_response(
-            user_message,
-            data_context=context,
-            conversation_history=conversation_history
-        )
-        
-        if intent == "GENERAL" and not context_used:
-            log_learning_issue(user_message, "unanswered", response_text)
-        
-        append_conversation_message(session_key, "assistant", response_text)
+        # Update History
+        append_conversation_message(session_key, "assistant", json.dumps(response_payload))
 
+        # Return structured JSON for frontend
+        # format: { response: JSON_STRING, session_id: STR }
         return jsonify({
-            "response": response_text,
-            "type": response_type,
-            "user": current_user.get("name") if current_user else "Guest",
-            "conversation_id": conversation_id
+            "response": json.dumps(response_payload),
+            "session_id": conversation_id,
+            "type": "message",
+            "user": current_user.get("name") if current_user else "Guest"
         })
 
     except Exception as e:

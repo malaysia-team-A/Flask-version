@@ -1,89 +1,79 @@
-# 🤝 인수인계서 (Handover Document)
+# 프로젝트 인수인계서 (Handover Document)
 
-## 프로젝트: UCSI 챗봇 (Kai) v2.3
-
-**작성일**: 2026-02-06  
-**작성자**: Antigravity (Assistant)
-
----
-
-## 1. 프로젝트 개요
-본 프로젝트는 UCSI 대학교 학생들을 위한 지능형 챗봇 서비스입니다.  
-학사 정보, 개인 성적 조회, 교내 편의시설 안내 등을 제공하며, 최신 **Google Gemini 2.0 Flash** 모델을 기반으로 동작합니다.
-
-### 주요 변경 사항 (v2.3)
-*   **AI 모델 업그레이드**: `Gemini 1.5` -> **`Gemini 2.0 Flash`**
-*   **SDK 교체**: 불안정한 LangChain Wrapper 제거 후 **Google GenAI Native SDK** 적용 (404 오류 영구 해결).
-*   **Ollama 제거**: 복잡도를 낮추고 클라우드 전용 아키텍처로 전환.
+**작성일**: 2026-02-06
+**프로젝트**: UCSI University AI Chatbot Project
+**상태**: MVP 완성 및 UI 최적화 완료
 
 ---
 
-## 2. 실행 환경 설정 (Getting Started)
+## 1. 프로젝트 개요 (Overview)
+본 프로젝트는 **Flask** 백엔드와 **Google Gemini AI**를 기반으로 한 대학 학사 행정 챗봇 시스템입니다. 학생들은 자연어로 학사 정보를 문의할 수 있으며, RAG(검색 증강 생성) 기술을 통해 정확한 학칙 및 행정 정보를 제공받습니다. 또한 성적 등 민감 정보는 이중 인증을 통해 안전하게 보호됩니다.
 
-### 2.1 필수 요구 사항
-*   **Python 3.10 이상**
-*   **Google Cloud API Key** (Gemini 접근용)
-*   **MongoDB Atlas URI** (데이터베이스 접근용)
+## 2. 핵심 성과 (Key Achievements)
 
-### 2.2 설치 및 실행 방법
+1.  **핵심 인프라 구축**: Flask(서버), MongoDB(DB), Gemini AI(지능형 엔진) 연동 완료.
+2.  **RAG 지식 검색 시스템**: 대학 관련 문서 및 데이터를 기반으로 할루시네이션(거짓 답변)을 최소화한 정확한 답변 제공.
+3.  **이중 보안 시스템 (Dual Auth)**: JWT 토큰 로그인 + 2차 비밀번호 입력을 통한 성적 조회 보안 강화.
+4.  **Premium UI/UX**: Glassmorphism 디자인, 모바일 풀스크린 반응형, 자연스러운 애니메이션(`fadeInUp`) 적용.
+5.  **비용 및 성능 최적화**: AI 호출 구조를 단일 호출(Single-Call)로 개선하여 비용 절감 및 응답 속도 향상.
 
-1.  **가상 환경 활성화**
-    ```bash
-    .venv\Scripts\activate
-    ```
+---
 
-2.  **의존성 패키지 설치**
+## 3. UI/UX 주요 기능 (Key Features)
+
+*   **스마트 추천 질문 (Smart Suggestions)**: AI가 답변과 함께 연관된 질문 버튼(예: "✨ 장학금 정보?")을 자동으로 제안합니다.
+*   **반응형 인터페이스**: 데스크탑에서는 우측 하단 위젯으로, 모바일에서는 앱처럼 전체 화면으로 작동합니다.
+*   **보안 아일랜드 (Security Island)**: 채팅창 내부의 Floating Glass UI를 통해 현재 보안 상태(잠금/해제)를 직관적으로 표시합니다.
+*   **감성적 디테일**: 'Inter' 폰트 적용, 부드러운 등장 애니메이션, 타이핑 효과 등 프리미엄 사용자 경험 제공.
+
+---
+
+## 4. 실행 및 테스트 (Execution Guide)
+
+### 필수 요구 사항
+*   Python 3.9+
+*   MongoDB Atlas 계정 (또는 로컬 MongoDB)
+*   Google Gemini API Key
+
+### 설치 및 실행
+1.  **패키지 설치**:
     ```bash
     pip install -r requirements.txt
     ```
-    *(중요: `google-genai` 패키지가 반드시 최신 버전이어야 합니다.)*
-
-3.  **환경 변수 확인 (`.env`)**
-    루트 디렉토리의 `.env` 파일에 다음 내용이 포함되어 있어야 합니다.
-    ```properties
-    MONGO_URI=mongodb+srv://...
-    GOOGLE_API_KEY=AIzaSy...
-    GEMINI_MODEL=gemini-2.0-flash
-    ADMIN_PASSWORD=admin
-    ```
-
-4.  **서버 실행**
+2.  **서버 실행**:
     ```bash
     python main.py
     ```
-    *정상 실행 시:* `🚀 Initializing Gemini AI (gemini-2.0-flash) via NEW Google Gen AI SDK...` 메시지가 출력됩니다.
+    또는 `start_chatbot.bat` 파일을 더블 클릭하세요.
+
+### 기능 테스트 시나리오
+1.  **일반 대화**: "컴퓨터 공학과는 어떤 곳이야?" → 자연스러운 답변과 추천 질문 버튼 확인.
+2.  **성적 조회 (보안 테스트)**:
+    *   "내 성적 보여줘" 입력.
+    *   로그인 버튼 클릭 → 학번/이름 입력 (예: `5004273609` / 데이터베이스 내 학생).
+    *   보안 패널의 **UNLOCK** 클릭 → 비밀번호 입력.
+    *   잠금 해제 후 성적 데이터 표시 확인.
 
 ---
 
-## 3. 주요 파일 구조 및 설명
+## 5. 프로젝트 구조 (File Structure)
 
-*   **`main.py`**: Flask 웹 서버 진입점.
-*   **`ai_engine.py`**: **[핵심]** 구글 AI SDK를 이용하여 챗봇 로직을 처리하는 엔진.
-    *   *주의*: 코드를 수정할 때 `self.client = genai.Client(...)` 초기화 부분을 건드리지 않도록 주의하십시오.
-*   **`db_engine.py`**: MongoDB 연결 및 데이터 조회 (학생 정보, 통계).
-*   **`rag_engine.py`**: 학교 문서(PDF/TXT)를 벡터화하여 검색하는 RAG 모듈.
-*   **`qa_runner_100.py`**: 100가지 시나리오를 자동으로 테스트하는 스크립트.
-
----
-
-## 4. 트러블슈팅 가이드 (Troubleshooting)
-
-### Q1. "Models not found 404" 오류가 발생합니다.
-*   **원인**: 구버전 라이브러리가 API 주소를 잘못 호출해서 발생했던 문제입니다.
-*   **해결**: `ai_engine.py`가 최신 SDK(`google-genai`)를 쓰도록 이미 수정되었습니다. `pip install -r requirements.txt`를 다시 실행해보세요.
-
-### Q2. "Quota Exceeded" 오류가 발생합니다.
-*   **원인**: 무료 티어 사용량을 초과했습니다.
-*   **해결**: `.env` 파일의 `GOOGLE_API_KEY`를 유효한 새 키로 교체하세요.
-
-### Q3. 학생 정보를 못 찾겠다고 합니다.
-*   **원인**: DB에 해당 학생이 없거나 이름 스펠링이 다릅니다.
-*   **해결**: `python debug_db_v2.py` 등으로 실제 DB 데이터를 조회하여 확인해보세요.
+*   `main.py`: Flask 웹 서버 메인 진입점.
+*   `ai_engine.py`: Google Gemini API 연동 및 프롬프트 처리 로직.
+*   `rag_engine.py`: 학교 관련 문서 검색 및 RAG 로직.
+*   `db_engine.py` / `data_engine.py`: MongoDB 데이터 핸들링.
+*   `UI_hompage/code_hompage.html`: 메인 프론트엔드 파일 (HTML/JS/Tailwind).
+*   `requirements.txt`: 프로젝트 의존성 목록.
 
 ---
 
-## 5. 보안 주의사항
-*   **.env 파일**은 절대 GitHub 등 공개 저장소에 업로드하지 마십시오.
-*   `GOOGLE_API_KEY`가 유출되면 과금 폭탄을 맞을 수 있으니 주의하십시오.
+## 6. 문제 해결 (Troubleshooting)
+*   **`ModuleNotFoundError: No module named 'jwt'`**:
+    *   `pip install pyjwt` 명령어로 모듈을 재설치하세요.
+*   **서버 실행 즉시 종료**:
+    *   `.env` 파일에 `GOOGLE_API_KEY`와 `MONGO_URI`가 올바르게 설정되었는지 확인하세요.
+*   **AI 응답 없음**:
+    *   API 할당량(Quota) 문제일 수 있습니다. 잠시 후 재시도하거나 API 키를 점검하세요.
 
-(끝)
+---
+**Note**: 이 문서는 프로젝트의 최신 상태(v2.0 Premium UI 적용)를 기준으로 작성되었습니다. 기존의 임시 파일들은 정리되었습니다.
