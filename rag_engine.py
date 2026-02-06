@@ -3,6 +3,11 @@ RAG Engine - Lightweight FAISS Version
 Uses FAISS for vector search and Sentence Transformers for embeddings.
 """
 import os
+# Suppress HuggingFace Warnings
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+import logging
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+
 import pickle
 from typing import List, Dict, Optional
 import numpy as np
@@ -89,6 +94,12 @@ class RAGEngine:
             elif ext == 'txt':
                 with open(file_path, 'r', encoding='utf-8') as f:
                     text = f.read()
+            elif ext == 'csv':
+                import csv
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    rows = list(reader)
+                    text = "\n".join([",".join(row) for row in rows])
             else:
                 return False
             

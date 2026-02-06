@@ -1,19 +1,12 @@
-# UCSI University Chatbot - Python Dependencies
-# Python Version: 3.13.7+
-# Last Updated: 2026-02-05
-
-# Core Framework
-flask>=3.0.0
-pandas==2.2.2
-openpyxl>=3.1.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-
-# RAG (Vector Search)
-faiss-cpu==1.13.2
-sentence-transformers==5.2.2
-PyPDF2==3.0.1
-numpy==1.26.4
-
-# MongoDB
-pymongo>=4.6.0
+flask
+pymongo
+python-dotenv
+langchain-core
+langchain-community
+faiss-cpu
+sentence-transformers
+pypdf2
+requests
+pandas
+openpyxl
+google-genai>=1.0.0

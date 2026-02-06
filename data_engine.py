@@ -1,157 +1,127 @@
 """
 Data Engine - Student Data Access Layer
-Handles Excel data loading and student verification
+Now uses MongoDB instead of Excel
 """
-import pandas as pd
-import os
+from db_engine import db_engine
+import re
 
 class DataEngine:
-    def __init__(self, excel_path):
-        self.excel_path = excel_path
-        self.df = None
-        self.load_data()
-
-    def load_data(self):
-        if os.path.exists(self.excel_path):
-            try:
-                self.df = pd.read_excel(self.excel_path)
-                print(f"Data Loaded. Columns: {self.df.columns.tolist()}")
-                # Standardize column names
-                self.df.columns = [str(c).strip() for c in self.df.columns]
-            except Exception as e:
-                print(f"Error loading Excel: {e}")
-                self.df = pd.DataFrame()
-        else:
-            print(f"File not found: {self.excel_path}")
-            self.df = pd.DataFrame()
+    def __init__(self, excel_path=None):
+        """
+        Initialize DataEngine with MongoDB backend
+        excel_path parameter kept for backward compatibility but not used
+        """
+        self.db = db_engine
+        print(f"DataEngine initialized with MongoDB (connected: {self.db.connected})")
 
     def get_column_names(self):
-        """Return available column names"""
-        if self.df is None or self.df.empty:
+        """Return available field names from MongoDB"""
+        if not self.db.connected:
             return []
-        return self.df.columns.tolist()
+        
+        # Get a sample document to extract field names
+        students = self.db.get_all_students()
+        if students and len(students) > 0:
+            return list(students[0].keys())
+        return []
 
     def verify_student(self, student_number, name):
         """
         Verify a student exists with matching student number and name
-        Returns the student record if found, None otherwise
+        Returns (is_valid, student_data, message) tuple
         """
-        if self.df is None or self.df.empty:
-            return None
+        if not self.db.connected:
+            return (False, None, "Database connection error")
         
-        # Find columns that might be student number and name
-        cols = [c.lower() for c in self.df.columns]
+        print(f"DEBUG: Verifying student_number='{student_number}', name='{name}'")
         
-        # Try to find student number column
-        student_num_col = None
-        for col in self.df.columns:
-            col_lower = col.lower()
-            if 'student' in col_lower and ('number' in col_lower or 'no' in col_lower or 'id' in col_lower):
-                student_num_col = col
-                break
-            if col_lower in ['studentno', 'student_no', 'student_id', 'studentid', 'id']:
-                student_num_col = col
-                break
+        # Get student by student number
+        student = self.db.get_student_by_number(student_number)
         
-        # Try to find name column
-        name_col = None
-        for col in self.df.columns:
-            col_lower = col.lower()
-            if 'name' in col_lower and 'nick' not in col_lower:
-                name_col = col
-                break
+        if not student:
+            print(f"DEBUG: Student number '{student_number}' not found in DB")
+            return (False, None, "Student number not found")
         
-        if not student_num_col or not name_col:
-            print(f"Could not find student number or name columns. Available: {self.df.columns.tolist()}")
-            # Fallback: use first two columns
-            if len(self.df.columns) >= 2:
-                student_num_col = self.df.columns[0]
-                name_col = self.df.columns[1]
-            else:
-                return None
+        # Verify name matches (case-insensitive)
+        # Check all possible variations of field names
+        student_name = student.get("STUDENT_NAME") or student.get("name") or student.get("Name") or student.get("FullName")
         
-        print(f"Using columns: StudentNum='{student_num_col}', Name='{name_col}'")
+        print(f"DEBUG: Found student record: {student}")
         
-        # Search for matching student
-        mask = (
-            (self.df[student_num_col].astype(str).str.strip().str.lower() == str(student_number).strip().lower()) &
-            (self.df[name_col].astype(str).str.strip().str.lower() == str(name).strip().lower())
-        )
+        if not student_name:
+            print("DEBUG: Student record found but no name field found")
+            return (False, None, "Student record corrupted (no name field)")
+
+        student_name_str = str(student_name).strip().lower()
+        input_name = str(name).strip().lower()
         
-        matches = self.df[mask]
-        
-        if len(matches) > 0:
-            # Return first match as dict
-            student_data = matches.iloc[0].to_dict()
-            return student_data
-        
-        return None
+        if student_name_str == input_name:
+            print("DEBUG: Verification successful")
+            return (True, student, "Verification successful")
+        else:
+            print(f"DEBUG: Name mismatch. DB='{student_name_str}', Input='{input_name}'")
+            return (False, None, "Name does not match student number")
 
     def get_student_info(self, student_number):
         """Get a specific student's information by student number"""
-        if self.df is None or self.df.empty:
+        if not self.db.connected:
             return None
         
-        # Find student number column
-        student_num_col = None
-        for col in self.df.columns:
-            col_lower = col.lower()
-            if 'student' in col_lower and ('number' in col_lower or 'no' in col_lower or 'id' in col_lower):
-                student_num_col = col
-                break
-            if col_lower in ['studentno', 'student_no', 'student_id', 'studentid', 'id']:
-                student_num_col = col
-                break
-        
-        if not student_num_col:
-            student_num_col = self.df.columns[0]
-        
-        mask = self.df[student_num_col].astype(str).str.strip().str.lower() == str(student_number).strip().lower()
-        matches = self.df[mask]
-        
-        if len(matches) > 0:
-            return matches.iloc[0].to_dict()
-        return None
+        return self.db.get_student_by_number(student_number)
 
     def get_summary_stats(self):
         """Get general statistics (non-sensitive)"""
-        if self.df is None or self.df.empty:
-            return {"error": "No data available"}
+        if not self.db.connected:
+            return {
+                "total_students": 0,
+                "gender_breakdown": {},
+                "nationality_breakdown": {},
+                "message": "Data currently unavailable (DB Disconnected)"
+            }
         
-        stats = {
-            "total_students": len(self.df),
-            "columns": self.df.columns.tolist()
+        stats = self.db.get_student_stats()
+        
+        # Format for compatibility with existing code
+        formatted_stats = {
+            "total_students": stats.get("total_students", 0),
+            "gender_breakdown": stats.get("gender", {}),
+            "nationality_breakdown": stats.get("top_nationalities", {}),
+            "columns": ["STUDENT_NUMBER", "STUDENT_NAME", "NATIONALITY", "GENDER", 
+                       "PROGRAMME_CODE", "PROGRAMME_NAME", "PROFILE_STATUS", 
+                       "PROFILE_TYPE", "INTAKE"]
         }
         
-        # Add gender breakdown if available
-        for col in self.df.columns:
-            if 'gender' in col.lower():
-                stats["gender_breakdown"] = self.df[col].value_counts().to_dict()
-                break
-        
-        # Add nationality breakdown if available
-        for col in self.df.columns:
-            if 'national' in col.lower():
-                stats["nationality_breakdown"] = self.df[col].value_counts().to_dict()
-                break
-        
-        return stats
+        return formatted_stats
+
+    def search_programme_info(self, user_message):
+        """Search MongoDB for programme/program keywords"""
+        if not self.db.connected or not user_message:
+            return []
+
+        tokens = [tok for tok in re.split(r'[^A-Za-z0-9]+', str(user_message)) if len(tok) > 3]
+        if not tokens:
+            tokens = [str(user_message)]
+        return self.db.search_programme_by_keywords(tokens)
 
     def search_students(self, query):
         """Search students (limited info for privacy)"""
-        if self.df is None or self.df.empty:
+        if not self.db.connected:
             return []
         
-        results = self.df[self.df.astype(str).apply(
-            lambda x: x.str.contains(query, case=False, na=False)
-        ).any(axis=1)]
+        # Search by name
+        student = self.db.get_student_by_name(query)
+        if student:
+            return [student]
         
-        return results.head(5).to_dict(orient='records')
+        # If not found by name, return empty
+        return []
 
 
 if __name__ == "__main__":
-    engine = DataEngine("Chatbot_TestData.xlsx")
+    engine = DataEngine()
     print("\n=== Summary Stats ===")
-    print(engine.get_summary_stats())
+    stats = engine.get_summary_stats()
+    print(f"Total Students: {stats.get('total_students')}")
+    print(f"Gender Breakdown: {stats.get('gender_breakdown')}")
     print("\n=== Columns ===")
     print(engine.get_column_names())

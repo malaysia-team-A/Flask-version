@@ -1,217 +1,97 @@
-# 📋 UCSI University Chatbot - 프로젝트 인수인계서
+# 🎓 UCSI University AI Chatbot (Kai)
 
-## 📌 프로젝트 개요
+![Version](https://img.shields.io/badge/version-2.2-blue.svg) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg) ![Gemini](https://img.shields.io/badge/AI-Gemini%202.0%20Flash-4285F4.svg)
 
-**프로젝트명**: UCSI University AI Chatbot  
-**목적**: 대학교 학생들이 개인 정보를 안전하게 조회할 수 있는 AI 챗봇  
-**버전**: 2.0.0  
-**최종 업데이트**: 2026-02-04
-
-### 주요 특징:
-- 🤖 로컬 LLM (Ollama)을 사용한 무료 AI 응답
-- 🧠 LLM 기반 의도 분류 (Intent Classification)
-- 🔐 개인정보 보호 (본인 정보만 접근 가능)
-- 👤 Student Number + Name 기반 인증
-- 🎨 깔끔한 UI/UX (Tailwind CSS)
+> **UCSI 대학교 학생들을 위한 차세대 지능형 학사 도우미 "Kai"**  
+> Google **Gemini 2.0 Flash**의 강력한 성능, RAG(검색 증강 생성) 기술, 그리고 **이중 보안 시스템**이 결합된 하이브리드 솔루션입니다.
 
 ---
 
-## 🛠️ 기술 스택 (Tech Stack)
+## 🌟 프로젝트 개요
+이 프로젝트는 단순한 Q&A 봇을 넘어, **실시간 데이터 연동**과 **문맥 인식**이 가능한 AI 에이전트입니다. 학생들은 복잡한 학사 행정 시스템에 접속하는 대신, 자연어로 질문하여 필요한 정보를 즉시 얻을 수 있습니다.
 
-### Backend
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Python** | 3.10+ | 메인 프로그래밍 언어 |
-| **Flask** | 3.0+ | Web Framework |
-| **Pandas** | 2.0+ | Excel 데이터 처리 |
-| **Openpyxl** | 3.1+ | .xlsx 파일 읽기 |
-| **FAISS** | Facebook AI | 고성능 벡터 검색 (Lightweight) |
-
-### AI/LLM
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Ollama** | 최신 | 로컬 LLM 실행 엔진 |
-| **gemma3:12b** | 12B | AI 모델 (권장) |
-| **llama3.2:3b** | 3B | AI 모델 (경량 대안) |
-
-### Frontend
-| 기술 | 용도 |
-|------|------|
-| **HTML5** | 페이지 구조 |
-| **Tailwind CSS** | 스타일링 (CDN) |
-| **JavaScript (Vanilla)** | 클라이언트 로직 |
-| **Material Icons** | 아이콘 (CDN) |
-
-### 인증/보안
-| 기술 | 용도 |
-|------|------|
-| **Session-based Auth** | 세션 기반 인증 |
-| **Student Number + Name** | 본인 확인 |
+### 핵심 차별점
+1.  **초고속 AI 엔진**: **Gemini 2.0 Flash**를 탑재하여 로컬 LLM 대비 압도적인 속도와 정확성을 자랑합니다.
+2.  **할루시네이션 최소화**: RAG 기술을 통해 실제 학교 규정 문서(PDF)에 기반한 답변만 제공합니다.
+3.  **개인화 & 보안**: 본인의 성적, 재무 상태 등 민감한 정보는 **이중 인증(Dual Auth)**을 거쳐야만 조회 가능합니다.
+4.  **자율 판단**: DB에 없는 일반 상식 질문(색깔, 농담 등)에도 유연하게 대처합니다.
 
 ---
 
-## 📁 파일 구조
+## 🚀 주요 기능 (Key Features)
 
-```
+| 기능 | 설명 |
+| :--- | :--- |
+| **🤖 AI 챗봇 (Kai)** | `Gemini 2.0 Flash` 기반의 똑똑하고 빠른 대화 엔진 |
+| **🔎 RAG 검색** | 교내 정책 문서, 핸드북 등을 벡터 DB화하여 정확한 근거 제시 |
+| **📊 학사 데이터 조회** | MongoDB Atlas 연동을 통한 실시간 학생 정보(GPA, 학적) 조회 |
+| **🔐 보안 인증** | JWT 기반 세션 관리 및 **성적 조회 시 비밀번호 재확인** 절차 |
+| **🧪 자동화 테스트** | 100가지 시나리오를 검증하는 QA 자동화 스크립트 내장 |
+| **🗣️ 피드백 루프** | 답변 만족도(좋아요/싫어요) 수집을 통한 지속적인 품질 개선 |
+
+---
+
+## 🛠 아키텍처 및 기술 스택
+
+### 백엔드 (Backend)
+*   **Flask (Python)**: REST API 서버
+*   **LangChain**: LLM 오케스트레이션 및 RAG 파이프라인 구축
+*   **MongoDB Atlas**: 클라우드 NoSQL 데이터베이스
+
+### AI & 데이터 (AI & Data)
+*   **Google Gemini 2.0 Flash**: 메인 추론 엔진 (Cloud LLM)
+*   **FAISS**: 고속 벡터 유사도 검색 엔진
+*   **SentenceTransformers**: `all-MiniLM-L6-v2` 임베딩 모델
+
+### 프론트엔드 (Frontend)
+*   Vanilla JS / HTML5 / CSS3
+*   **Glassmorphism Design**: 현대적이고 깔끔한 UI/UX 적용
+
+---
+
+## 📂 프로젝트 구조
+
+```bash
 project_MALAYSIA/
-├── main.py                 # 🚀 메인 서버 (Flask)
-├── ai_engine.py            # 🤖 AI 엔진 (Ollama 연결, 의도분류)
-├── data_engine.py          # 📊 데이터 엔진 (Excel 처리)
-├── feedback_engine.py      # 👍 피드백 엔진
-├── learning_engine.py      # 🧠 셀프러닝 엔진
-├── rag_engine.py           # 📚 RAG 엔진 (FAISS 기반)
-├── knowledge_base/         # 📁 RAG 문서 및 인덱스 저장
-├── admin/                  # 🛠️ 관리자 페이지
-│   └── admin.html
-├── UI_hompage/             # 🌐 프론트엔드
-│   └── code_hompage.html
-├── requirements.txt        # 📦 Python 의존성
-├── README.md               # 📖 이 문서
-└── Chatbot_TestData.xlsx   # 📋 학생 데이터
+├── ai_engine.py        # 🧠 AI 엔진 (Gemini 2.0 Flash + LangChain)
+├── rag_engine.py       # 📚 RAG 엔진 (문서 수집, FAISS 인덱싱)
+├── db_engine.py        # 🗄️ DB 엔진 (MongoDB 연결, 통계)
+├── data_engine.py      # ⚙️ 데이터 처리 계층
+├── auth_utils.py       # 🔐 보안 모듈 (JWT, 이중 인증)
+├── qa_runner_100.py    # 🧪 QA 자동화 테스트 스크립트
+├── main.py             # 🚀 Flask 메인 서버
+├── admin/              # 👨‍💼 관리자 대시보드
+├── UI_hompage/         # 🎨 사용자 채팅 웹 인터페이스 (Kai)
+└── knowledge_base/     # 📖 RAG 참조용 문서 저장소
 ```
 
 ---
 
-## ⚙️ 환경 설정 가이드
+## ⚡ 빠른 시작 (Quick Start)
 
-### 1단계: Python 설치
-```bash
-# Python 3.10 이상 필요
-python --version
-```
+상세한 설치 방법은 [SETUP_GUIDE.md](SETUP_GUIDE.md) 파일을 참고하세요.
 
-### 2단계: Python 의존성 설치
+### 1. 환경 설정
 ```bash
-cd project_MALAYSIA
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3단계: Ollama 설치 (로컬 LLM)
-1. **다운로드**: https://ollama.com/download/windows
-2. **설치 파일 실행**: OllamaSetup.exe
-3. **모델 다운로드**:
-```bash
-ollama pull gemma3:12b
+### 2. API 키 설정 (.env)
+```ini
+GOOGLE_API_KEY=AIzaSy... (당신의 Gemini API 키)
+MONGO_URI=mongodb+srv://...
 ```
 
----
-
-## 🚀 실행 방법
-
-### 터미널 실행
+### 3. 서버 실행
 ```bash
-cd project_MALAYSIA
 python main.py
 ```
 
-**성공 시 출력:**
-```
-Running on http://0.0.0.0:8000
-```
-
-### 브라우저 접속
-```
-http://localhost:8000
-```
-
 ---
 
-## 🤖 AI 의도 분류 시스템
-
-### 단순화된 2가지 의도
-
-| 의도 | 설명 | 인증 필요 | 예시 |
-|------|------|----------|------|
-| **GENERAL** | 일반 정보 (통계 포함) | ❌ 불필요 | "Hello", "How many students?", "Gender ratio?" |
-| **PERSONAL_DATA** | 학생 개인 정보 | ✅ 필요 | "Who is Vicky?", "My grades", "Tell me my info" |
-
----
-
-## 🔐 인증 및 보안 로직
-
-### 로그인 방법
-1. 챗봇 헤더의 **Login 버튼** 클릭
-2. Student Number + Full Name 입력
-3. ✅ 인증 성공 시 버튼이 사용자 이름으로 변경
-
----
-
-## 📊 데이터 파일 (Excel)
-
-### 파일: `Chatbot_TestData.xlsx`
-- **중요**: 암호화/보호 해제 필요
-- Excel에서 열어서 "다른 이름으로 저장" → 암호 없이 저장
-
----
-
-## ❗ 트러블슈팅
-
-### 포트 사용 중
-```
-Address already in use
-```
-**해결**: `main.py` 맨 아래 포트 번호 변경
-```python
-app.run(host="0.0.0.0", port=8001)
-```
-
----
-
-## 📝 테스트 시나리오
-
-### 1. 일반 대화 (인증 불필요)
-```
-입력: "Hello, who are you?"
-결과: AI 자기소개 ✅
-```
-
-### 2. 통계 조회 (인증 불필요)
-```
-입력: "How many students are enrolled?"
-결과: 📊 통계 정보 표시 ✅
-```
-
-### 3. 미로그인 상태에서 개인정보 요청
-```
-입력: "Who is Vicky Yiran?"
-결과: 🔒 "This is student personal information. Please login..." ✅
-```
-
-### 4. 로그인 후 본인 정보 조회
-```
-입력: "Show me my information"
-결과: 📋 본인 정보 깔끔하게 표시 ✅
-```
-
-### 5. 타인 정보 접근 시도
-```
-(A로 로그인한 상태)
-입력: "Who is B?"
-결과: 🔒 "Privacy Protection: You can only access your own information." ✅
-```
-
----
-
-## 📞 Quick Reference
-
-### 필수 명령어
-```bash
-# 의존성 설치
-pip install -r requirements.txt
-
-# Ollama 모델 다운로드
-ollama pull gemma3:12b
-
-# 서버 시작
-python main.py
-```
-
-### 접속 URL
-- 메인 페이지: http://localhost:8000
-- API Health: http://localhost:8000/api/health
-- API Stats: http://localhost:8000/api/stats
-
----
-
-**마지막 업데이트**: 2026-02-04  
-**버전**: 2.0.0
+## 📝 라이선스 및 정보
+*   **Author**: UCSI University AI Dev Team
+*   **Status**: Production Ready (v2.2)
+*   **Engine**: Powered by Google Gemini

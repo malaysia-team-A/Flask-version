@@ -1,1 +1,15 @@
-{"unanswered": [], "low_confidence": [], "stats": {"total_issues": 0}}
+{
+  "unanswered": [],
+  "low_confidence": [
+    {
+      "id": 1,
+      "timestamp": "2026-02-05T16:10:11.430827",
+      "question": "say my DOB and grade",
+      "confidence": 0.0,
+      "response": "🔒 Security Check: Please enter your password to view examination results."
+    }
+  ],
+  "stats": {
+    "total_issues": 1
+  }
+}

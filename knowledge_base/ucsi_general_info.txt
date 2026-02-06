@@ -1,0 +1,40 @@
+UCSI UNIVERSITY GENERAL INFORMATION
+
+## FACULTIES AND INSTITUTES
+UCSI University offers a wide range of programmes across various faculties:
+1. Faculty of Applied Sciences: Offers programs in Biotechnology, Food Science, Nutrition, and Aquatic Science.
+2. Faculty of Business and Management: Offers Business Administration, Accounting, Finance, Marketing, and Logistics.
+3. Faculty of Engineering, Technology & Built Environment: Civil, Chemical, Electrical, Mechanical, Petroleum Engineering, and Architecture.
+4. Faculty of Hospitality & Tourism Management: Hotel Management, Culinary Arts, Leisure & Tourism.
+5. Faculty of Medicine & Health Sciences: Verified Medicine (MD), Nursing, Optometry.
+6. Faculty of Pharmaceutical Sciences: Pharmacy, Formulation Science.
+7. Faculty of Social Sciences & Liberal Arts: Psychology, Mass Communication, English Language, Education.
+8. Institutes: Institute of Music, Institute of Computer Science (Data Science, IT), De Institute of Creative Arts and Design (ICAD).
+
+## CAMPUS FACILITIES
+- **Laboratories**: Engineering labs, Science labs (Chemistry, Biotech), Architect workshops, Fashion workshops.
+- **Library**: Comprehensive library with digital resources and study areas.
+- **Star Hall**: A large auditorium for events and examinations.
+- **Sports**: Swimming pool, Gymnasium, Basketball/Badminton courts.
+- **Accommodation**:
+    - **On-Campus (Residential Halls)**: Blocks D & E. Twin sharing. 
+        - Facilities: Air-con (timed), Wi-Fi, Hot Shower, Common Pantry (Microwave, Fridge, Water Dispenser). 
+        - *Strictly Halal* pantry policy.
+    - **Off-Campus**: Angkasa Condo (nearby). Apartment style with living room and kitchen.
+
+## ACADEMIC CALENDAR & GRADING
+**Grading System**:
+- A  (80-100) : 4.00 (Distinction)
+- A- (75-79)  : 3.67
+- B+ (70-74)  : 3.33
+- B  (65-69)  : 3.00
+- B- (60-64)  : 2.67
+- C+ (55-59)  : 2.33
+- C  (50-54)  : 2.00 (Pass)
+- C- (40-49)  : 1.67 (Fail for some core modules, check policy)
+- D+ (35-39)  : 1.00 (Fail)
+- F  (0-30)   : 0.00 (Fail)
+
+**Terms**:
+- Semester usually runs Jan-April, May-Aug, Sept-Dec.
+- Assessment usually includes Continuous Assessment (Assignments, Mid-terms) and Final Exam.

@@ -215,7 +215,7 @@
                         </div>
                     </div>
                     <div>
-                        <h3 class="font-bold text-lg leading-tight">UCSI Assistant</h3>
+                        <h3 class="font-bold text-lg leading-tight">Kai</h3>
                         <div class="flex items-center gap-2">
                             <p class="text-xs text-red-100 flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span> Online
@@ -271,8 +271,8 @@
                     <div class="flex flex-col gap-1 max-w-[80%]">
                         <div
                             class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm border border-gray-100 dark:border-gray-600">
-                            <p>Hello! I'm your UCSI University assistant. Ask me anything! For personal information,
-                                I'll ask you to verify your identity.</p>
+                            <p>Hi, I'm <strong>Kai</strong>! 👋 I'm here to help you with your campus life. Ask me
+                                anything!</p>
                         </div>
                     </div>
                 </div>
@@ -289,6 +289,23 @@
                     class="whitespace-nowrap bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-red-50 hover:text-primary hover:border-red-200 transition-colors shadow-sm">
                     👥 Gender Ratio
                 </button>
+            </div>
+
+            <!-- High Security Panel -->
+            <div id="security-panel"
+                class="bg-red-50/70 dark:bg-red-900/30 border-y border-red-100 dark:border-red-800 px-4 py-3 flex items-center justify-between gap-3 text-sm">
+                <div>
+                    <p class="text-[11px] uppercase tracking-wide text-red-700 dark:text-red-200 font-semibold">
+                        High-Security Access</p>
+                    <p id="security-status-text" class="text-xs text-red-900 dark:text-red-100 font-medium">Login
+                        required to unlock grade-related answers.</p>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                    <button id="security-action-btn" onclick="openHighSecurityPanel()"
+                        class="text-xs font-semibold bg-white dark:bg-gray-800 text-primary px-3 py-1.5 rounded-full shadow border border-red-200 dark:border-red-700 disabled:opacity-50 disabled:cursor-not-allowed">Unlock</button>
+                    <span id="security-helper-text" class="text-[10px] text-red-500 dark:text-red-200">Step 1 of
+                        2</span>
+                </div>
             </div>
 
             <!-- Input Area -->
@@ -309,6 +326,28 @@
             </div>
         </div>
 
+        <!-- Password Modal -->
+        <div id="password-screen"
+            class="hidden absolute inset-0 bg-white/90 dark:bg-gray-900/90 z-30 flex flex-col items-center justify-center p-6 space-y-4 backdrop-blur-sm">
+            <div
+                class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-2 animate-pulse">
+                <span class="material-icons text-primary text-3xl">lock</span>
+            </div>
+            <h3 class="text-xl font-bold dark:text-white">Security Check</h3>
+            <p class="text-xs text-center text-gray-500 mb-4">Accessing grades requires high-level security.<br>Please
+                enter your password.</p>
+            <input id="secure-password" type="password" placeholder="Enter Password"
+                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:text-white text-sm"
+                onkeypress="if(event.key === 'Enter') submitPassword()">
+            <button onclick="submitPassword()"
+                class="w-full bg-primary text-white font-bold py-2 rounded-lg hover:bg-red-800 transition-colors shadow-lg">
+                Unlock Data
+            </button>
+            <button onclick="hidePasswordScreen()" class="text-gray-500 text-xs hover:text-primary transition-colors">
+                Cancel
+            </button>
+        </div>
+
         <!-- Toggle Button -->
         <button onclick="toggleChatbot()"
             class="flex items-center bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-6 py-3 rounded-full shadow-2xl border border-gray-100 dark:border-slate-700 hover:scale-105 transition-transform active:scale-95 group">
@@ -318,21 +357,114 @@
     </div>
 
     <script>
-        // Session management
+        // Session & Auth State
         let sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        let jwtToken = null;
         let verifiedUser = null;
-
-        function toggleChatbot() {
-            const window = document.getElementById('chatbot-window');
-            window.classList.toggle('hidden');
+        // Clear previous session data on load to force fresh login
+        localStorage.removeItem('ucsi_jwt');
+        localStorage.removeItem('ucsi_user');
+        localStorage.removeItem('ucsi_high_until');
+        let highSecurityExpiresAt = 0;
+        if (isNaN(highSecurityExpiresAt) || Date.now() > highSecurityExpiresAt) {
+            highSecurityExpiresAt = null;
         }
 
-        function showVerifyScreen() {
-            // If already logged in, show logout option
-            if (verifiedUser) {
-                if (confirm(`You are logged in as ${verifiedUser.name}. Do you want to logout?`)) {
-                    logout();
+        function isHighSecurityActive() {
+            return verifiedUser && highSecurityExpiresAt && Date.now() < highSecurityExpiresAt;
+        }
+
+        function clearHighSecurityState() {
+            highSecurityExpiresAt = null;
+            localStorage.removeItem('ucsi_high_until');
+        }
+
+        function updateSecurityBadge() {
+            const statusEl = document.getElementById('security-status-text');
+            const helperEl = document.getElementById('security-helper-text');
+            const btn = document.getElementById('security-action-btn');
+            const panel = document.getElementById('security-panel');
+            if (!statusEl || !helperEl || !btn || !panel) return;
+
+            if (!verifiedUser || !jwtToken) {
+                statusEl.textContent = 'Login required to unlock grade-related answers.';
+                helperEl.textContent = 'Step 1 of 2';
+                btn.textContent = 'Login';
+                btn.disabled = false;
+                panel.classList.remove('ring-2', 'ring-primary', 'animate-pulse');
+                return;
+            }
+
+            if (isHighSecurityActive()) {
+                const remainingMs = highSecurityExpiresAt - Date.now();
+                const minutes = Math.max(1, Math.floor(remainingMs / 60000));
+                statusEl.textContent = `Unlocked for ${minutes} min${minutes > 1 ? 's' : ''}.`;
+                helperEl.textContent = 'High-security mode active';
+                btn.textContent = 'Unlocked';
+                btn.disabled = true;
+                panel.classList.remove('ring-2', 'ring-primary', 'animate-pulse');
+            } else {
+                statusEl.textContent = 'Locked. Enter your password to view grades.';
+                helperEl.textContent = 'Step 2 of 2';
+                btn.textContent = 'Enter Password';
+                btn.disabled = false;
+                panel.classList.remove('ring-2', 'ring-primary', 'animate-pulse');
+            }
+        }
+
+        function openHighSecurityPanel() {
+            if (!verifiedUser || !jwtToken) {
+                showVerifyScreen();
+                return;
+            }
+            showPasswordScreen();
+        }
+
+        function pulseSecurityPanel() {
+            updateSecurityBadge();
+            const panel = document.getElementById('security-panel');
+            if (!panel) return;
+            panel.classList.add('ring-2', 'ring-primary', 'animate-pulse');
+            setTimeout(() => panel.classList.remove('ring-2', 'ring-primary', 'animate-pulse'), 1800);
+        }
+
+        // Initialize UI State
+        window.onload = function () {
+            // Recover login state if token exists
+            if (jwtToken && verifiedUser) {
+                updateLoginButton();
+            } else {
+                localStorage.removeItem('ucsi_jwt');
+                localStorage.removeItem('ucsi_user');
+                clearHighSecurityState();
+            }
+
+            if (highSecurityExpiresAt && Date.now() > highSecurityExpiresAt) {
+                clearHighSecurityState();
+            }
+
+            updateSecurityBadge();
+
+            // Allow interaction
+            document.getElementById('chips-area').classList.remove('opacity-50', 'pointer-events-none');
+            document.getElementById('input-area').classList.remove('opacity-50', 'pointer-events-none');
+
+            setInterval(() => {
+                if (highSecurityExpiresAt && Date.now() > highSecurityExpiresAt) {
+                    clearHighSecurityState();
                 }
+                updateSecurityBadge();
+            }, 30000);
+        };
+
+        function toggleChatbot() {
+            document.getElementById('chatbot-window').classList.toggle('hidden');
+        }
+
+        // --- Screens ---
+        function showVerifyScreen() {
+            if (verifiedUser) {
+                if (confirm(`Logged in as ${verifiedUser.name}. Logout?`)) logout();
                 return;
             }
             document.getElementById('verify-screen').classList.remove('hidden');
@@ -342,88 +474,100 @@
             document.getElementById('verify-screen').classList.add('hidden');
         }
 
+        function showPasswordScreen() {
+            document.getElementById('password-screen').classList.remove('hidden');
+        }
+
+        function hidePasswordScreen() {
+            document.getElementById('password-screen').classList.add('hidden');
+            document.getElementById('secure-password').value = '';
+        }
+
         function updateLoginButton() {
             const btn = document.getElementById('header-login-btn');
             const btnText = document.getElementById('login-btn-text');
             const btnIcon = btn.querySelector('.material-icons');
 
             if (verifiedUser) {
-                btnText.textContent = verifiedUser.name.split(' ')[0]; // First name only
+                btnText.textContent = verifiedUser.name.split(' ')[0];
                 btnIcon.textContent = 'person';
                 btn.classList.add('bg-green-500/30');
-                btn.classList.remove('bg-white/20');
             } else {
                 btnText.textContent = 'Login';
                 btnIcon.textContent = 'login';
                 btn.classList.remove('bg-green-500/30');
-                btn.classList.add('bg-white/20');
             }
         }
 
-        async function logout() {
-            try {
-                await fetch('/api/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sessionId })
-                });
-            } catch (e) {
-                console.error(e);
-            }
-            verifiedUser = null;
-            updateLoginButton();
-            appendMessage('👋 You have been logged out.', 'ai');
-        }
+        // --- API Interaction (JWT Aware) ---
 
         async function verifyStudent() {
             const studentNumber = document.getElementById('verify-student-number').value.trim();
             const name = document.getElementById('verify-name').value.trim();
             const btn = document.querySelector('#verify-screen button:first-of-type');
 
-            if (!studentNumber || !name) {
-                alert('Please enter both Student Number and Name.');
-                return;
-            }
+            if (!studentNumber || !name) return alert('Please enter both fields.');
 
             btn.innerText = 'Verifying...';
 
             try {
-                const response = await fetch('/api/verify', {
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        student_number: studentNumber,
-                        name: name,
-                        session_id: sessionId
-                    })
+                    body: JSON.stringify({ student_number: studentNumber, name: name })
+                });
+
+                const data = await response.json();
+
+                if (data.token) {
+                    // Success: Store Token
+                    jwtToken = data.token;
+                    verifiedUser = { name: data.user.name, student_number: data.user.student_number };
+
+                    localStorage.setItem('ucsi_jwt', jwtToken);
+                    localStorage.setItem('ucsi_user', JSON.stringify(verifiedUser));
+
+                    hideVerifyScreen();
+                    updateLoginButton();
+                    appendMessage(`✅ Identity Verified! Welcome, ${data.user.name}.`, 'ai');
+                } else {
+                    alert(data.message || 'Verification failed.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Server error.');
+            } finally {
+                btn.innerText = 'Verify Identity';
+            }
+        }
+
+        async function submitPassword() {
+            const password = document.getElementById('secure-password').value;
+            if (!password) return;
+
+            try {
+                const response = await fetch('/api/verify_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`
+                    },
+                    body: JSON.stringify({ password: password })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    verifiedUser = { student_number: studentNumber, name: name };
-                    hideVerifyScreen();
-                    updateLoginButton();
-                    appendMessage(`✅ ${data.message} You can now access your personal information.`, 'ai');
+                    hidePasswordScreen();
+                    appendMessage("🔓 High Security Mode Enabled (10 mins). You can now verify your grades.", 'ai');
+                    // Automatically retry the last logical request if possible, or just ask user to ask again.
+                    // For simplicity, ask user to re-type.
                 } else {
-                    alert(data.message || 'Verification failed. Please check your details.');
-                    btn.innerText = 'Verify Identity';
+                    alert("Incorrect Password.");
                 }
             } catch (e) {
-                console.error(e);
-                alert('Connection error. Please try again.');
-                btn.innerText = 'Verify Identity';
+                alert("Error verifying password.");
             }
-        }
-
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') sendMessage();
-        }
-
-        function sendChip(message) {
-            const input = document.getElementById('chat-input');
-            input.value = message;
-            sendMessage();
         }
 
         async function sendMessage() {
@@ -431,47 +575,65 @@
             const message = input.value.trim();
             if (!message) return;
 
-            // Add User Message
             appendMessage(message, 'user');
             input.value = '';
-
-            // Loading State
             const loadingId = appendLoading();
 
             try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`;
+
                 const response = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: message,
-                        session_id: sessionId
-                    })
+                    headers: headers,
+                    body: JSON.stringify({ message: message, session_id: sessionId })
                 });
 
                 const data = await response.json();
-
-                // Remove loading
                 document.getElementById(loadingId).remove();
 
-                // Check for Verification Requirement from Backend
-                if (data.type === 'verify_required') {
+                // Handle Auth/Security Challenges
+                if (data.error) {
+                    appendMessage("⚠️ Error: " + data.error, 'ai');
+                }
+                else if (data.type === 'verify_required' || data.type === 'login_hint') {
                     appendMessage("🔒 " + data.response, 'ai');
                     showVerifyScreen();
-                    return;
+                }
+                else if (data.type === 'password_required' || data.type === 'password_prompt') {
+                    appendMessage("🔒 " + data.response, 'ai');
+                    pulseSecurityPanel();
+                    openHighSecurityPanel();
+                }
+                else {
+                    appendMessage(data.response || "No response content.", 'ai', message);
                 }
 
-                // Add AI Response
-                appendMessage(data.response, 'ai', message);
-
             } catch (error) {
-                const loader = document.getElementById(loadingId);
-                if (loader) loader.remove();
-                appendMessage("Sorry, I'm having trouble connecting to the server.", 'ai');
-                console.error(error);
+                if (document.getElementById(loadingId)) document.getElementById(loadingId).remove();
+                appendMessage("Connection failed.", 'ai');
             }
         }
 
-        function appendMessage(text, sender, relatedUserQuestion = null) {
+        async function logout() {
+            localStorage.removeItem('ucsi_jwt');
+            localStorage.removeItem('ucsi_user');
+            jwtToken = null;
+            verifiedUser = null;
+            updateLoginButton();
+            clearHighSecurityState();
+            updateSecurityBadge();
+            appendMessage('Logged out.', 'ai');
+
+            // Optional: Call server to blacklist token (not implemented strictly in backend yet)
+            fetch('/api/logout', { method: 'POST' });
+        }
+
+        // --- UI Helpers ---
+        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+        function sendChip(msg) { document.getElementById('chat-input').value = msg; sendMessage(); }
+
+        function appendMessage(text, sender, relatedQ = null) {
             const container = document.getElementById('chat-messages');
             const div = document.createElement('div');
             const isUser = sender === 'user';
@@ -482,107 +644,43 @@
                 ? `<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden shrink-0 mt-1"><span class="material-icons text-gray-500 w-full h-full flex items-center justify-center">person</span></div>`
                 : `<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1"><span class="material-icons text-primary text-sm">smart_toy</span></div>`;
 
-            const bubbleClass = isUser
-                ? 'bg-primary text-white p-3 rounded-2xl rounded-tr-none shadow-md text-sm'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm border border-gray-100 dark:border-gray-600 markdown-body';
+            const itemsBg = isUser ? 'bg-primary text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-600 markdown-body';
 
-            let feedbackHtml = '';
-            if (!isUser && relatedUserQuestion) {
-                // Escape strings for safety
-                const safeUserMsg = encodeURIComponent(relatedUserQuestion);
-                const safeAiMsg = encodeURIComponent(text);
-
-                feedbackHtml = `
-                    <div class="flex gap-2 mt-1 ml-1">
-                        <button onclick="submitFeedback(this, 'positive', '${safeUserMsg}', '${safeAiMsg}')" 
-                            class="text-gray-300 hover:text-green-500 transition-colors p-1" title="Helpful">
-                            <span class="material-icons text-[14px]">thumb_up</span>
-                        </button>
-                        <button onclick="submitFeedback(this, 'negative', '${safeUserMsg}', '${safeAiMsg}')" 
-                            class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Not Helpful">
-                            <span class="material-icons text-[14px]">thumb_down</span>
-                        </button>
-                    </div>
-                `;
+            let feedback = '';
+            if (!isUser && relatedQ) {
+                feedback = `
+                <div class="flex gap-2 mt-1 ml-1">
+                    <button onclick="submitFeedback(this, 'positive', '${encodeURIComponent(relatedQ)}', '${encodeURIComponent(text)}')" class="text-gray-300 hover:text-green-500 p-1"><span class="material-icons text-[14px]">thumb_up</span></button>
+                    <button onclick="submitFeedback(this, 'negative', '${encodeURIComponent(relatedQ)}', '${encodeURIComponent(text)}')" class="text-gray-300 hover:text-red-500 p-1"><span class="material-icons text-[14px]">thumb_down</span></button>
+                </div>`;
             }
 
-            div.innerHTML = `
-                ${avatar}
-                <div class="flex flex-col gap-1 max-w-[80%]">
-                    <div class="${bubbleClass}">
-                        <p>${text}</p>
-                    </div>
-                    ${feedbackHtml}
-                </div>
-            `;
-
+            div.innerHTML = `${avatar}<div class="flex flex-col gap-1 max-w-[80%]"><div class="${itemsBg} p-3 rounded-2xl ${isUser ? 'rounded-tr-none' : 'rounded-tl-none'} shadow-sm text-sm"><p>${text}</p></div>${feedback}</div>`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
-        }
-
-        async function submitFeedback(btn, rating, userMsgEncoded, aiMsgEncoded) {
-            const userMessage = decodeURIComponent(userMsgEncoded);
-            const aiResponse = decodeURIComponent(aiMsgEncoded);
-
-            // UI feedback immediately
-            const parent = btn.parentElement;
-            const buttons = parent.querySelectorAll('button');
-            buttons.forEach(b => b.classList.add('hidden')); // Hide all buttons
-
-            // Show confirmation icon
-            const confirmSpan = document.createElement('span');
-            confirmSpan.className = 'text-xs text-gray-400 ml-1 animate-fade-in';
-            confirmSpan.innerText = rating === 'positive' ? 'Thanks! 👍' : 'Thanks! 👎';
-            parent.appendChild(confirmSpan);
-
-            try {
-                await fetch('/api/feedback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        user_message: userMessage,
-                        ai_response: aiResponse,
-                        rating: rating
-                    })
-                });
-            } catch (e) {
-                console.error("Feedback failed:", e);
-            }
         }
 
         function appendLoading() {
-            const container = document.getElementById('chat-messages');
-            const id = 'loading-' + Date.now();
-            const div = document.createElement('div');
-            div.id = id;
-            div.className = 'flex gap-3 animate-fade-in-up';
-            div.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
-                    <span class="material-icons text-primary text-sm">smart_toy</span>
-                </div>
-                <div class="bg-white dark:bg-gray-700 p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 dark:border-gray-600 w-12 flex items-center justify-center gap-1">
-                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-150"></div>
-                </div>
-            `;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
+            const c = document.getElementById('chat-messages');
+            const id = 'l-' + Date.now();
+            const d = document.createElement('div');
+            d.id = id;
+            d.className = 'flex gap-3 animate-fade-in-up';
+            d.innerHTML = `<div class="w-8 h-8 rounded-full bg-primary/10 flex center shrink-0 mt-1"><span class="material-icons text-primary text-sm">smart_toy</span></div><div class="bg-white dark:bg-gray-700 p-3 rounded-2xl rounded-tl-none border border-gray-100 w-12 flex justify-center gap-1"><div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-150"></div></div>`;
+            c.appendChild(d);
+            c.scrollTop = c.scrollHeight;
             return id;
         }
 
-        // Initialize on page load
-        window.onload = function () {
-            // All inputs are enabled by default, no login required for general chat
-            document.getElementById('chips-area').classList.remove('opacity-50', 'pointer-events-none');
-            document.getElementById('input-area').classList.remove('opacity-50', 'pointer-events-none');
-
-            // Update welcome message
-            const welcomeMsg = document.querySelector('#chat-messages .bg-white p, #chat-messages .dark\\:bg-gray-700 p');
-            if (welcomeMsg) {
-                welcomeMsg.textContent = "Hello! I'm your UCSI University assistant. Ask me anything! For personal information, I'll ask you to verify your identity.";
-            }
+        async function submitFeedback(btn, rating, u, a) {
+            btn.parentElement.innerHTML = `<span class="text-xs text-gray-400 ml-1">Thanks! ${rating === 'positive' ? '👍' : '👎'}</span>`;
+            try {
+                await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwtToken}` },
+                    body: JSON.stringify({ user_message: decodeURIComponent(u), ai_response: decodeURIComponent(a), rating: rating })
+                });
+            } catch (e) { }
         }
     </script>
     <section class="bg-slate-50 dark:bg-slate-900/50 py-10">
